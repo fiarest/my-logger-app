@@ -1,50 +1,65 @@
+// script.js の一番上に必要なFirebase Firestore関数をインポート
+// index.html で使用している Firebase SDK のバージョンに合わせてください (例: 9.23.0)
+import { 
+    doc, 
+    setDoc, 
+    onSnapshot, 
+    collection, 
+    query, 
+    orderBy, 
+    limit, 
+    addDoc 
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
 document.addEventListener('DOMContentLoaded', () => {
     const NUM_SETS = 5;
     const MAX_LOG_ENTRIES = 15;
 
     const timerIntervals = {};
 
-    // カスタムアラート要素の取得 (変更なし)
+    // カスタムアラート要素の取得
     const customAlertOverlay = document.getElementById('custom-alert-overlay');
     const customAlertBox = document.getElementById('custom-alert-box');
     const customAlertMessage = document.getElementById('custom-alert-message');
     const customAlertCloseBtn = document.getElementById('custom-alert-close-btn');
 
     // Firebase Firestore のインスタンスを取得
-    // index.html で window.db に公開したものを利用
     const db = window.db; 
     if (!db) {
         console.error("Firebase Firestore is not initialized. Make sure Firebase SDK is loaded correctly in index.html.");
         showCustomAlert("データの同期機能が利用できません。\nブラウザのコンソールをご確認ください。");
-        return; // Firebase が利用できない場合は処理を中断
+        return; 
     }
 
-    // Firebase Firestore の関数をインポート（index.htmlで定義済みだが、参照用）
-    // const { doc, setDoc, onSnapshot, collection, query, orderBy, limit, addDoc } = window.firebase.firestoreFunctions; // もしこのようにモジュール化した場合
-
     /**
-     * カスタムアラートを表示する関数 (変更なし)
+     * カスタムアラートを表示する関数
+     * @param {string} message - 表示するメッセージ
      */
     function showCustomAlert(message) {
         customAlertMessage.textContent = message;
-        customAlertOverlay.classList.remove('hidden');
+        customAlertOverlay.classList.remove('hidden'); // 非表示クラスを削除して表示
+        // ポップアップの外側をクリックしたら閉じるイベントリスナー
         customAlertOverlay.addEventListener('click', closeCustomAlert);
+        // ポップアップボックス内の「閉じる」ボタンのイベントリスナー
         customAlertCloseBtn.addEventListener('click', closeCustomAlert);
+        // ポップアップボックス自体へのクリックは伝播させない
         customAlertBox.addEventListener('click', (e) => e.stopPropagation());
     }
 
     /**
-     * カスタムアラートを非表示にする関数 (変更なし)
+     * カスタムアラートを非表示にする関数
      */
     function closeCustomAlert() {
-        customAlertOverlay.classList.add('hidden');
+        customAlertOverlay.classList.add('hidden'); // 非表示クラスを追加して非表示
+        // イベントリスナーを削除（重複して追加されないように）
         customAlertOverlay.removeEventListener('click', closeCustomAlert);
         customAlertCloseBtn.removeEventListener('click', closeCustomAlert);
         customAlertBox.removeEventListener('click', (e) => e.stopPropagation());
     }
 
+
     /**
-     * カウントダウンタイマーを更新する関数 (ローカルストレージ部分は変更)
+     * カウントダウンタイマーを更新する関数
      * @param {string} timerId - タイマー要素のID (例: 'timer-display-0')
      * @param {number} totalSeconds - 残り秒数
      * @param {HTMLElement} displayElement - タイマー表示のDOM要素
@@ -55,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalSeconds < 0) {
             clearInterval(timerIntervals[timerId]);
             displayElement.textContent = '00:00';
-            // ローカルストレージではなく、Firebaseからタイマー残りをクリア
+            // Firebaseからタイマー残りをクリア
             setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: 0, isActive: false }, { merge: true }).catch(e => console.error("Error updating timer state in Firestore:", e));
             const title = titleInput.value.trim();
             const message = title ? `${title}のタイマーが終了しました！` : `セット${setId + 1}のタイマーが終了しました！`;
@@ -73,19 +88,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * タイマーを開始する関数 (ローカルストレージ部分は変更)
+     * タイマーを開始する関数
      * @param {string} timerId - タイマー要素のID
-     * @param {number} initialMinutes - 初期設定する分数（入力欄の値）
+     * @param {number} initialSeconds - 初期設定する秒数
      * @param {HTMLElement} displayElement - タイマー表示のDOM要素
      * @param {number} setId - セットのインデックス
      * @param {HTMLElement} titleInput - タイトル入力欄のDOM要素
      */
-    function startTimer(timerId, initialMinutes, displayElement, setId, titleInput) {
+    function startTimer(timerId, initialSeconds, displayElement, setId, titleInput) {
         if (timerIntervals[timerId]) {
             clearInterval(timerIntervals[timerId]);
         }
 
-        let totalSeconds = initialMinutes * 60;
+        let totalSeconds = initialSeconds;
 
         updateCountdown(timerId, totalSeconds, displayElement, setId, titleInput);
 
@@ -95,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
 
         // タイマー開始時にFirebaseのisActiveをtrueに設定
-        setDoc(doc(db, `timer_states/${setId}`), { isActive: true, initialMinutes: initialMinutes }, { merge: true }).catch(e => console.error("Error setting timer active state in Firestore:", e));
+        setDoc(doc(db, `timer_states/${setId}`), { isActive: true, initialSeconds: initialSeconds, startTime: new Date().getTime() }, { merge: true }).catch(e => console.error("Error setting timer active state in Firestore:", e));
     }
 
 
@@ -239,21 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (isActive && remainingSeconds > 0) {
                         // アクティブなタイマーがあれば再開
                         if (!timerIntervals[currentTimerId]) { // 既に動いていなければ
-                            // タイマーは常に引数のinitialMinutesで開始されるので、remainingSecondsで直接開始できない
-                            // 既に動いているタイマーを他のデバイスで停止した場合は、ここでclearIntervalが走る
-                            // そのため、タイマーの残り時間表示のみ更新
-                            const minutes = Math.floor(remainingSeconds / 60);
-                            const seconds = remainingSeconds % 60;
-                            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-                             // 別デバイスで開始されたタイマーを現在のデバイスで引き継ぐ
-                            if (!timerIntervals[currentTimerId]) {
-                                let currentTotalSeconds = remainingSeconds;
-                                timerIntervals[currentTimerId] = setInterval(() => {
-                                    currentTotalSeconds--;
-                                    updateCountdown(currentTimerId, currentTotalSeconds, timerDisplay, i, titleInput);
-                                }, 1000);
-                            }
+                            let currentTotalSeconds = remainingSeconds;
+                            timerIntervals[currentTimerId] = setInterval(() => {
+                                currentTotalSeconds--;
+                                updateCountdown(currentTimerId, currentTotalSeconds, timerDisplay, i, titleInput);
+                            }, 1000);
                         }
                     } else if (remainingSeconds === 0 && timerIntervals[currentTimerId]) {
                         // タイマーが終了したか、別デバイスで停止された場合
@@ -342,9 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         await addDoc(collection(db, `logs/${i}/entries`), logData);
                         console.log(`Log added to Firestore for set ${i}:`, logData);
 
-                        // ログが追加されたらonSnapshotが自動でUIを更新するので、手動でのDOM操作は不要
-                        // ログ数をMAX_LOG_ENTRIESに制限する処理もFirestoreのクエリで対応される
-
                         xCoordInput.value = '';
                         yCoordInput.value = '';
                     } catch (e) {
@@ -375,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }).catch(e => console.error("Error starting timer in Firestore:", e));
                         
                         // このデバイスでもタイマーを開始
-                        startTimer(currentTimerId, minutes, timerDisplay, i, titleInput);
+                        startTimer(currentTimerId, minutes * 60, timerDisplay, i, titleInput);
                     } catch (e) {
                         console.error(`Error in timer start button click handler for set ${i}:`, e);
                         showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\n${e.message}`);
