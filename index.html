@@ -17,6 +17,26 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
-</body>
+    <script type="module">
+     const firebaseConfig = {
+  apiKey: "AIzaSyCKGcafBnpzEnehU9EFw-BR6XRIvDRnaLk",
+  authDomain: "my-coordinate-logger.firebaseapp.com",
+  projectId: "my-coordinate-logger",
+  storageBucket: "my-coordinate-logger.firebasestorage.app",
+  messagingSenderId: "1020461370240",
+  appId: "1:1020461370240:web:7635b47753882f68cd4f65"
+};
+
+      // Firebase の初期化
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+      import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      // グローバルオブジェクトに db を公開し、script.js からアクセスできるようにする
+      // ※よりモダンな方法としては、firebase-init.js のような別ファイルで初期化し、それを import するのが望ましいですが、今回は簡易性のためwindowオブジェクト経由で公開します。
+      window.db = db;
+    </script>
+    <script src="script.js" type="module"></script> </body>
 </html>
