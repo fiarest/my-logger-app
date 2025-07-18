@@ -126,19 +126,19 @@ body {
 /* X/Y座標の入力欄とラベルのコンテナ */
 .coord-inputs {
     display: flex;
-    gap: 10px; /* XとYの入力欄間のスペース */
+    gap: 5px; /* XとYの入力欄間のスペースを狭める */
     flex-grow: 1; /* 残りのスペースを埋める */
-    /* flex-basis: auto; を削除 */
+    flex-basis: auto; /* コンテンツの幅に基づいて初期サイズを決定 */
     min-width: 0; /* Flexアイテムの最小幅問題を解決 */
 }
 
 .coord-inputs > div {
     flex: 1; /* XとYの入力欄が等しい幅になるように */
+    flex-basis: 0; /* Flexアイテムが利用可能なスペースをより均等に配分するように */
     display: flex;
     align-items: center;
     gap: 5px; /* ラベルと入力欄間のスペース */
     min-width: 0; /* 各座標グループが縮小しすぎないように */
-    /* flex-basis: 0; を削除 */
 }
 
 .coord-inputs label {
@@ -154,14 +154,13 @@ body {
 
 /* input-set内の全ての数値入力欄に適用される */
 .input-set input[type="number"] {
-    width: 60px; /* 表のX/Y列と同じ幅に固定 */
-    padding: 2px 4px; /* パディングを調整 */
+    flex: 1; /* ラベルの横で残りのスペースを埋めるように */
+    padding: 4px; /* パディングを減らす */
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.85em;
     box-sizing: border-box;
-    /* flex を削除 */
-    /* min-width, max-width を削除 */
+    /* min-width, max-width を削除してflexに任せる */
     -webkit-appearance: none !important;
     -moz-appearance: textfield !important;
     appearance: none !important;

@@ -10,8 +10,7 @@ import {
     query, 
     orderBy, 
     limit, 
-    addDoc,
-    updateDoc // ドキュメント更新用にインポート
+    addDoc 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -87,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         displayElement.textContent = displayTime;
 
         // タイマーの残り時間をFirebaseに保存
-        // 頻繁な書き込みを避けるため、一定間隔でのみ保存するロジックを追加することも検討可
         setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: totalSeconds, isActive: true }, { merge: true }).catch(e => console.error("Error saving timer remaining to Firestore:", e));
     }
 
@@ -114,29 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
 
         // タイマー開始時にFirebaseのisActiveをtrueに設定
-        setDoc(doc(db, `timer_states/${setId}`), { 
-            isActive: true, 
-            initialSeconds: initialSeconds, 
-            startTime: new Date().getTime() // 開始時刻
-        }, { merge: true }).catch(e => console.error("Error setting timer active state in Firestore:", e));
-    }
-
-    /**
-     * タイマーをリセットする関数
-     * @param {string} timerId - タイマー要素のID
-     * @param {HTMLElement} displayElement - タイマー表示のDOM要素
-     * @param {number} setId - セットのインデックス
-     * @param {number} initialMinutes - タイマーの初期設定分数 (Firestoreから取得)
-     */
-    function resetTimer(timerId, displayElement, setId, initialMinutes) {
-        if (timerIntervals[timerId]) {
-            clearInterval(timerIntervals[timerId]);
-            delete timerIntervals[timerId];
-        }
-        const resetTime = `${String(initialMinutes).padStart(2, '0')}:00`;
-        displayElement.textContent = resetTime;
-        // Firebaseのタイマー状態をリセット
-        setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: initialMinutes * 60, isActive: false, initialMinutes: initialMinutes }, { merge: true }).catch(e => console.error("Error resetting timer in Firestore:", e));
+        setDoc(doc(db, `timer_states/${setId}`), { isActive: true, initialSeconds: initialSeconds, startTime: new Date().getTime() }, { merge: true }).catch(e => console.error("Error setting timer active state in Firestore:", e));
     }
 
 
@@ -160,8 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="timer-container">
                     <div class="timer-controls">
                         <input type="number" id="timer-minutes-${i}" class="timer-input" placeholder="分" min="1" value="5">
-                        <button id="timer-start-btn-${i}" class="timer-button timer-start-btn">開始</button>
-                        <button id="timer-reset-btn-${i}" class="timer-button timer-reset-btn">リセット</button>
+                        <button id="timer-start-btn-${i}" class="timer-button">開始</button>
                     </div>
                     <div class="timer-display" id="timer-display-${i}">00:00</div>
                 </div>
@@ -176,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="number" id="y-coord-${i}" step="any">
                         </div>
                     </div>
-                    <button id="log-btn-${i}" class="log-btn">記録</button>
+                    <button id="log-btn-${i}">記録</button>
                 </div>
                 <div class="log-display" id="log-display-${i}">
                     <table class="log-table">
@@ -203,10 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const logButton = document.getElementById(`log-btn-${i}`);
             const logDisplayTableBody = inputSet.querySelector(`#log-display-${i} tbody`);
             const commentInput = document.getElementById(`comment-${i}`);
+            // datetimeInput は削除されたので取得しない
 
             const timerMinutesInput = document.getElementById(`timer-minutes-${i}`);
             const timerStartBtn = document.getElementById(`timer-start-btn-${i}`);
-            const timerResetBtn = document.getElementById(`timer-reset-btn-${i}`); // リセットボタン取得
             const timerDisplay = document.getElementById(`timer-display-${i}`);
             const currentTimerId = `timer-${i}`;
 
@@ -215,9 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!timerStartBtn) {
                 console.error(`Error: timerStartBtn not found for set ${i}.`);
-            }
-            if (!timerResetBtn) { // リセットボタンのチェックも追加
-                console.error(`Error: timerResetBtn not found for set ${i}.`);
             }
             if (!xCoordInput || !yCoordInput || !logDisplayTableBody) {
                 console.error(`Error: Missing essential input/display elements for set ${i}. Log functionality might be broken.`);
@@ -261,25 +233,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 while (logDisplayTableBody.firstChild) {
                     logDisplayTableBody.removeChild(logDisplayTableBody.firstChild);
                 }
-                let lastLoggedDate = null; // 日付区切り線の基準日
-                snapshot.forEach((docSnap) => { // docSnapでドキュメント全体を取得
-                    const logData = docSnap.data();
-                    const logDocId = docSnap.id; // ドキュメントIDも取得 (更新用)
-
-                    const logDate = new Date(logData.timestamp); // timestampを使う
-                    const currentDateForSeparator = logDate.toLocaleDateString('ja-JP');
-
-                    const needsSeparator = lastLoggedDate && lastLoggedDate !== currentDateForSeparator;
-                    addLogToTable(logData, logDisplayTableBody, needsSeparator, logDocId, i); // docIdとsetIdを渡す
-                    lastLoggedDate = currentDateForSeparator;
+                let lastLoggedDate = null;
+                snapshot.forEach((doc) => {
+                    const logData = doc.data();
+                    // Firebaseに保存したdatetimeフィールドから日付部分を抽出
+                    const currentDate = logData.datetime.substring(0, 5); // "MM/DD"形式を想定
+                    const needsSeparator = lastLoggedDate && lastLoggedDate !== currentDate;
+                    addLogToTable(logData, logDisplayTableBody, needsSeparator);
+                    lastLoggedDate = currentDate;
                 });
-                if (snapshot.empty) { // ログがない場合の表示
-                    const row = logDisplayTableBody.insertRow(0);
-                    const cell = row.insertCell(0);
-                    cell.colSpan = 3;
-                    cell.style.textAlign = 'center';
-                    cell.textContent = 'ログはありません。';
-                }
             }, (error) => {
                 console.error(`Error loading logs for set ${i} from Firestore:`, error);
                 showCustomAlert(`ログの読み込みに失敗しました。\nエラー: ${error.message}`);
@@ -291,79 +253,49 @@ document.addEventListener('DOMContentLoaded', () => {
                     const data = docSnap.data();
                     const remainingSeconds = data.remainingSeconds || 0;
                     const isActive = data.isActive || false;
-                    const initialMinutes = data.initialMinutes || parseInt(timerMinutesInput.value) || 5; // 初期設定値
 
                     if (isActive && remainingSeconds > 0) {
                         // アクティブなタイマーがあれば再開
-                        // 既に動いている場合は何もしない
-                        if (!timerIntervals[currentTimerId]) { 
-                             // 最終更新からの経過時間を計算して、より正確な残り時間を設定
-                            const elapsedTime = (new Date().getTime() - (data.startTime || new Date().getTime())) / 1000;
-                            let currentTotalSeconds = Math.max(0, remainingSeconds - Math.round(elapsedTime));
-                            
-                            // setIntervalは前のものをクリアしてから開始
-                            if (timerIntervals[currentTimerId]) clearInterval(timerIntervals[currentTimerId]);
-
+                        if (!timerIntervals[currentTimerId]) { // 既に動いていなければ
+                            let currentTotalSeconds = remainingSeconds;
                             timerIntervals[currentTimerId] = setInterval(() => {
                                 currentTotalSeconds--;
                                 updateCountdown(currentTimerId, currentTotalSeconds, timerDisplay, i, titleInput);
                             }, 1000);
                         }
-                    } else { // isActiveがfalseまたはremainingSecondsが0以下の場合
-                        if (timerIntervals[currentTimerId]) {
-                            clearInterval(timerIntervals[currentTimerId]);
-                            delete timerIntervals[currentTimerId];
-                        }
-                        // 残り時間が0であれば00:00、そうでなければ初期値に戻す
-                        if (remainingSeconds <= 0) {
-                             timerDisplay.textContent = '00:00';
-                        } else {
-                            const minutes = Math.floor(remainingSeconds / 60);
-                            const seconds = remainingSeconds % 60;
-                            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                        }
+                    } else if (remainingSeconds === 0 && timerIntervals[currentTimerId]) {
+                        // タイマーが終了したか、別デバイスで停止された場合
+                        clearInterval(timerIntervals[currentTimerId]);
+                        delete timerIntervals[currentTimerId];
+                        timerDisplay.textContent = '00:00';
+                    } else if (!isActive && timerIntervals[currentTimerId]) {
+                        // 別デバイスでタイマーが停止された場合
+                        clearInterval(timerIntervals[currentTimerId]);
+                        delete timerIntervals[currentTimerId];
+                        timerDisplay.textContent = `${String(parseInt(timerMinutesInput.value)).padStart(2, '0')}:00`;
                     }
                 } else {
-                    // ドキュメントが存在しない場合はデフォルトの表示
                     timerDisplay.textContent = `${String(parseInt(timerMinutesInput.value)).padStart(2, '0')}:00`;
                 }
             }, (error) => {
                 console.error(`Error loading timer state for set ${i} from Firestore:`, error);
-                showCustomAlert(`タイマー状態の読み込みに失敗しました。\nエラー: ${error.message}`);
             });
 
 
             // 以下、イベントリスナーの追加
-            function addLogToTable(logData, tableBodyElement, addSeparator = false, docId, setId) {
+            function addLogToTable(logData, tableBodyElement, addSeparator = false) {
                 const row = document.createElement('tr');
-                // ドキュメントIDをデータ属性として保持し、編集時に利用
-                row.dataset.docId = docId; 
-                row.dataset.setId = setId; // セットIDも保持
-
-                // 日時の表示形式を mm/dd hh:mm に変更
-                const date = new Date(logData.timestamp);
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-                const formattedDateTime = `${month}/${day} ${hours}:${minutes}`;
-
+                const displayX = logData.x !== undefined ? logData.x : '';
+                const displayY = logData.y !== undefined ? logData.y : '';
                 row.innerHTML = `
-                    <td>${formattedDateTime}</td>
-                    <td class="editable-cell" data-field="x" style="text-align: center;">${logData.x !== undefined ? logData.x : ''}</td>
-                    <td class="editable-cell" data-field="y" style="text-align: center;">${logData.y !== undefined ? logData.y : ''}</td>
+                    <td>${logData.datetime}</td>
+                    <td style="text-align: center;">${displayX}</td>
+                    <td style="text-align: center;">${displayY}</td>
                 `;
-                
-                // 日付が変わる場合にセパレータ行を挿入
                 if (addSeparator) {
-                    const separatorRow = document.createElement('tr');
-                    const separatorCell = separatorRow.insertCell(0);
-                    separatorCell.colSpan = 3;
-                    separatorCell.className = 'log-entry-date-separator';
-                    tableBodyElement.prepend(separatorRow); // セパレータはログ行の前に挿入
+                    row.classList.add('log-entry-date-separator');
                 }
-
-                tableBodyElement.prepend(row); // 最新のログを上に追加
+                tableBodyElement.prepend(row);
             }
 
             // タイトル入力時の処理をFirebaseに保存するように変更
@@ -387,20 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
             }
-            
-            // タイマー分数入力時の処理をFirebaseに保存するように変更
-            if (timerMinutesInput) {
-                timerMinutesInput.addEventListener('input', () => {
-                    const minutes = parseInt(timerMinutesInput.value);
-                    // 1分未満の無効な入力でない場合のみ保存
-                    if (!isNaN(minutes) && minutes > 0) {
-                         setDoc(doc(db, `settings/${i}`), { timerMinutes: minutes }, { merge: true }).catch(e => {
-                            console.error(`Error saving timer minutes for set ${i} to Firestore:`, e);
-                            showCustomAlert("タイマー設定の保存に失敗しました。\nネットワーク接続をご確認ください。");
-                        });
-                    }
-                });
-            }
 
             // ログ記録ボタンのイベントリスナー (日時入力欄の処理を削除)
             if (logButton && xCoordInput && yCoordInput && logDisplayTableBody) {
@@ -422,13 +340,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         const hours = String(now.getHours()).padStart(2, '0');
                         const minutes = String(now.getMinutes()).padStart(2, '0');
                         const datetimeStr = `${month}/${day} ${hours}:${minutes}`;
-                        const timestampVal = now.getTime(); // ソート用にミリ秒単位のUnixタイムスタンプ
+                        const timestampVal = now.getTime();
 
                         const logData = {
-                            datetime: datetimeStr, // 表示用 (例: "MM/DD HH:MM")
+                            datetime: datetimeStr,
                             x: x,
                             y: y,
-                            timestamp: timestampVal // ソート用
+                            timestamp: timestampVal
                         };
 
                         // Firebaseにログを追加
@@ -465,10 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }).catch(e => console.error("Error starting timer in Firestore:", e));
                         
                         // このデバイスでもタイマーを開始
-                        // onSnapshotでタイマー状態が更新されるので、直接ここからstartTimerを呼ぶ必要はないが、
-                        // 即座にUIを更新するために呼んでもよい。onSnapshot側でclearIntervalを考慮すること。
-                        // 今回のonSnapshotは、残りの秒数を計算し直すロジックを含んでいるので問題ない。
-                        // startTimer(currentTimerId, minutes * 60, timerDisplay, i, titleInput);
+                        startTimer(currentTimerId, minutes * 60, timerDisplay, i, titleInput);
                     } catch (e) {
                         console.error(`Error in timer start button click handler for set ${i}:`, e);
                         showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\\n${e.message}`);
@@ -478,87 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.warn(`Timer start button event listener NOT attached for set ${i} due to missing elements.`);
             }
-
-            // タイマーリセットボタンのイベントリスナーを追加
-            if (timerResetBtn && timerDisplay && timerMinutesInput) {
-                timerResetBtn.addEventListener('click', () => {
-                    const initialMinutes = parseInt(timerMinutesInput.value) || 5; // 初期値を取得
-                    resetTimer(currentTimerId, timerDisplay, i, initialMinutes);
-                });
-                console.log(`Timer reset button event listener attached for set ${i}.`);
-            }
-
-            // 表のセル編集機能のセットアップ
-            logDisplayTableBody.addEventListener('click', async (event) => {
-                const cell = event.target;
-                // 日付セルや既に編集中のセル、空白のセルは編集しない
-                if (!cell.classList.contains('editable-cell') || cell.querySelector('input') || cell.textContent === 'ログはありません。') {
-                    return;
-                }
-
-                const originalText = cell.textContent;
-                const row = cell.closest('tr');
-                if (!row) return; // 行が見つからなければ何もしない
-
-                const docId = row.dataset.docId; // ドキュメントID
-                const currentSetId = parseInt(row.dataset.setId); // セットID
-                const fieldToUpdate = cell.dataset.field; // 'x' or 'y'
-
-                if (!docId || isNaN(currentSetId) || !fieldToUpdate) {
-                    console.error("Missing data-docId, data-setId, or data-field for cell edit.");
-                    return;
-                }
-
-                // input要素を作成
-                const input = document.createElement('input');
-                input.type = 'text'; // 数字以外も編集できるようにtextに
-                input.value = originalText;
-                input.style.width = '100%'; // セル幅に合わせる
-                input.style.padding = '2px';
-                input.style.boxSizing = 'border-box';
-                input.style.border = '1px solid #007bff';
-                input.style.borderRadius = '3px';
-                input.style.textAlign = 'center';
-                input.style.fontSize = 'inherit'; // 親のフォントサイズを継承
-
-                // セルの内容をinputに置き換える
-                cell.innerHTML = '';
-                cell.appendChild(input);
-                input.focus();
-
-                // 編集終了時の処理
-                const saveEdit = async () => {
-                    let newValue = input.value.trim();
-                    if (newValue === originalText) { // 変更がなければ何もしない
-                        cell.textContent = originalText;
-                        return;
-                    }
-
-                    try {
-                        // Firebaseのドキュメントを更新
-                        const logRef = doc(db, `logs/${currentSetId}/entries`, docId);
-                        await updateDoc(logRef, { [fieldToUpdate]: newValue });
-                        console.log(`Updated log ${fieldToUpdate} for doc ${docId} in set ${currentSetId}`);
-                        cell.textContent = newValue; // UIを更新
-                    } catch (e) {
-                        console.error(`Error updating log ${fieldToUpdate} for set ${currentSetId} in Firestore:`, e);
-                        showCustomAlert(`ログの更新に失敗しました。\nエラー: ${e.message}`);
-                        cell.textContent = originalText; // エラー時は元に戻す
-                    }
-                };
-
-                // Enterキーで保存
-                input.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        saveEdit();
-                        input.blur(); // フォーカスを外してblurイベントもトリガー
-                    }
-                });
-
-                // フォーカスが外れたら保存
-                input.addEventListener('blur', saveEdit);
-            });
-
 
         } catch (error) {
             console.error(`Critical error initializing input set ${i}:`, error);
