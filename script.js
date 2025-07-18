@@ -41,6 +41,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return; 
     }
 
+    // ** ポップアップ関連のイベントリスナーをDOM Content Loaded で一度だけ追加 **
+    if (customAlertOverlay) {
+        customAlertOverlay.addEventListener('click', (e) => {
+            // オーバーレイ自体がクリックされた場合のみ閉じる (子要素へのクリックは無視)
+            if (e.target === customAlertOverlay) {
+                closeCustomAlert();
+            }
+        });
+        console.log("Overlay click listener attached permanently."); // デバッグログ
+    }
+    if (customAlertCloseBtn) {
+        customAlertCloseBtn.addEventListener('click', closeCustomAlert);
+        console.log("Close button click listener attached permanently."); // デバッグログ
+    }
+    if (customAlertBox) {
+        customAlertBox.addEventListener('click', (e) => e.stopPropagation()); // ボックス内のクリックは伝播させない
+        console.log("Alert box stopPropagation listener attached permanently."); // デバッグログ
+    }
+
     /**
      * カスタムアラートを表示する関数
      * @param {string} message - 表示するメッセージ
@@ -55,18 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("Custom alert overlay display style after showCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
 
-        // ポップアップの外側をクリックしたら閉じるイベントリスナーを少し遅延して追加
-        // これにより、ポップアップ表示を引き起こしたクリックイベントが、
-        // ポップアップのクリックイベントリスナーを意図せずトリガーするのを防ぐ
-        setTimeout(() => {
-            customAlertOverlay.addEventListener('click', closeCustomAlert);
-            console.log("Overlay click listener added."); // デバッグログ
-        }, 50); // 50ミリ秒の遅延
-
-        // ポップアップボックス内の「閉じる」ボタンのイベントリスナー（これは即座に追加）
-        customAlertCloseBtn.addEventListener('click', closeCustomAlert);
-        // ポップアップボックス自体へのクリックは伝播させない
-        customAlertBox.addEventListener('click', (e) => e.stopPropagation());
+        // イベントリスナーはDOM Content Loadedで永続的に追加されているため、ここでは追加しない
     }
 
     /**
@@ -77,15 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 直接スタイルを設定して、非表示を強制
         customAlertOverlay.style.display = 'none';
 
-        // hiddenクラスの追加は不要になるため削除
-        // customAlertOverlay.classList.add('hidden'); 
-
         console.log("Custom alert overlay display style after closeCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
-        // イベントリスナーを削除（重複して追加されないように）
-        // setTimeoutで追加されたものをremoveするために、同じ参照を渡す
-        customAlertOverlay.removeEventListener('click', closeCustomAlert);
-        customAlertCloseBtn.removeEventListener('click', closeCustomAlert);
-        customAlertBox.removeEventListener('click', (e) => e.stopPropagation());
+        // イベントリスナーはDOM Content Loadedで永続的に追加されているため、ここでは削除しない
     }
 
     /**
