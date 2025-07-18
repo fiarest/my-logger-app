@@ -48,8 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function showCustomAlert(message) {
         console.log("showCustomAlert called with message:", message); // デバッグログ
         customAlertMessage.textContent = message;
-        customAlertOverlay.classList.remove('hidden'); // 非表示クラスを削除して表示
-        console.log("Custom alert overlay hidden class after showCustomAlert:", customAlertOverlay.classList.contains('hidden') ? 'hidden' : 'visible'); // デバッグログ
+        // 直接スタイルを設定して、表示を強制
+        customAlertOverlay.style.display = 'flex';
+        customAlertOverlay.style.opacity = '1'; // 透明度も確実に1に
+        customAlertOverlay.style.zIndex = '1000'; // z-indexも確実に設定
+
+        // hiddenクラスの除去は不要になるため削除
+        // customAlertOverlay.classList.remove('hidden'); 
+
+        console.log("Custom alert overlay display style after showCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
         // ポップアップの外側をクリックしたら閉じるイベントリスナー
         customAlertOverlay.addEventListener('click', closeCustomAlert);
         // ポップアップボックス内の「閉じる」ボタンのイベントリスナー
@@ -63,8 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function closeCustomAlert() {
         console.log("closeCustomAlert called."); // デバッグログ
-        customAlertOverlay.classList.add('hidden'); // 非表示クラスを追加して非表示
-        console.log("Custom alert overlay hidden class after closeCustomAlert:", customAlertOverlay.classList.contains('hidden') ? 'hidden' : 'visible'); // デバッグログ
+        // 直接スタイルを設定して、非表示を強制
+        customAlertOverlay.style.display = 'none';
+
+        // hiddenクラスの追加は不要になるため削除
+        // customAlertOverlay.classList.add('hidden'); 
+
+        console.log("Custom alert overlay display style after closeCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
         // イベントリスナーを削除（重複して追加されないように）
         customAlertOverlay.removeEventListener('click', closeCustomAlert);
         customAlertCloseBtn.removeEventListener('click', closeCustomAlert);
