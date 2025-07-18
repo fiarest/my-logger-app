@@ -120,13 +120,13 @@ body {
     justify-content: space-between; /* X/Y入力グループとボタンの間にスペースを最大限取る */
     width: 100%;
     margin-bottom: 8px;
-    gap: 5px; /* ここを少し狭くすることで、全体が収まりやすくなるか試す */
+    gap: 8px; /* ここを広げることで、記録ボタンとの間隔を確保 */
 }
 
 /* X/Y座標の入力欄とラベルのコンテナ */
 .coord-inputs {
     display: flex;
-    gap: 8px; /* XとYの入力欄間のスペースを少し狭める */
+    gap: 5px; /* XとYの入力欄間のスペースを狭める */
     flex-grow: 1; /* 残りのスペースを埋める */
     flex-basis: auto; /* コンテンツの幅に基づいて初期サイズを決定 */
     min-width: 0; /* Flexアイテムの最小幅問題を解決 */
@@ -134,6 +134,7 @@ body {
 
 .coord-inputs > div {
     flex: 1; /* XとYの入力欄が等しい幅になるように */
+    flex-basis: 0; /* Flexアイテムが利用可能なスペースをより均等に配分するように */
     display: flex;
     align-items: center;
     gap: 5px; /* ラベルと入力欄間のスペース */
@@ -154,20 +155,18 @@ body {
 /* input-set内の全ての数値入力欄に適用される */
 .input-set input[type="number"] {
     flex: 1; /* ラベルの横で残りのスペースを埋めるように */
-    padding: 7px;
+    padding: 5px; /* パディングを減らす */
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.85em;
     box-sizing: border-box;
-    /* min-width, max-width を削除してflexに任せる */
+    /* min-width, max-width は不要 */
     -webkit-appearance: none !important;
     -moz-appearance: textfield !important;
     appearance: none !important;
 }
 
 /* 記録ボタンのスタイル */
-/* 汎用性を高めるため、ID指定からクラス指定に変更するか、親クラスで指定します */
-/* 今回はcoord-log-container button で指定しているので、個別のID指定は削除 */
 .coord-log-container button { 
     background-color: #555;
     color: white;
