@@ -326,3 +326,210 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td class="editable-cell" data-field="x" style="text-align: center;">${logData.x !== undefined ? logData.x : ''}</td>
                     <td class="editable-cell" data-field="y" style="text-align: center;">${logData.y !== undefined ? logData.y : ''}</td>
                 `;
+                
+                // 日付が変わる場合にセパレータ行を挿入
+                if (addSeparator) {
+                    const separatorRow = document.createElement('tr');
+                    const separatorCell = separatorRow.insertCell(0);
+                    separatorCell.colSpan = 3;
+                    separatorCell.className = 'log-entry-date-separator';
+                    tableBodyElement.prepend(separatorRow); // セパレータはログ行の前に挿入
+                }
+
+                tableBodyElement.prepend(row); // 最新のログを上に追加
+            }
+
+            // タイトル入力時の処理をFirebaseに保存するように変更
+            if (titleInput) {
+                titleInput.addEventListener('input', () => {
+                    // Firebaseにタイトルを保存
+                    setDoc(doc(db, `settings/${i}`), { title: titleInput.value }, { merge: true }).catch(e => {
+                        console.error(`Error saving title for set ${i} to Firestore:`, e);
+                        showCustomAlert("タイトルの保存に失敗しました。\nネットワーク接続をご確認ください。");
+                    });
+                });
+            }
+
+            // コメント入力時の処理をFirebaseに保存するように変更
+            if (commentInput) {
+                commentInput.addEventListener('input', () => {
+                    // Firebaseにコメントを保存
+                    setDoc(doc(db, `settings/${i}`), { comment: commentInput.value }, { merge: true }).catch(e => {
+                        console.error(`Error saving comment for set ${i} to Firestore:`, e);
+                        showCustomAlert("コメントの保存に失敗しました。\nネットワーク接続をご確認ください。");
+                    });
+                });
+            }
+            
+            // タイマー分数入力時の処理をFirebaseに保存するように変更
+            if (timerMinutesInput) {
+                timerMinutesInput.addEventListener('input', () => {
+                    const minutes = parseInt(timerMinutesInput.value);
+                    // 1分未満の無効な入力でない場合のみ保存
+                    if (!isNaN(minutes) && minutes > 0) {
+                         setDoc(doc(db, `settings/${i}`), { timerMinutes: minutes }, { merge: true }).catch(e => {
+                            console.error(`Error saving timer minutes for set ${i} to Firestore:`, e);
+                            showCustomAlert("タイマー設定の保存に失敗しました。\nネットワーク接続をご確認ください。");
+                        });
+                    }
+                });
+            }
+
+            // ログ記録ボタンのイベントリスナー (日時入力欄の処理を削除)
+            if (logButton && xCoordInput && yCoordInput && logDisplayTableBody) {
+                logButton.addEventListener('click', async () => {
+                    console.log(`Log button clicked for set ${i}`);
+                    try {
+                        const x = xCoordInput.value;
+                        const y = yCoordInput.value;
+                        
+                        if (x === '' || y === '') {
+                            showCustomAlert('XとYの両方を入力してください。');
+                            return;
+                        }
+
+                        // 現在時刻を自動で取得して日時とする
+                        const now = new Date();
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const day = String(now.getDate()).padStart(2, '0');
+                        const hours = String(now.getHours()).padStart(2, '0');
+                        const minutes = String(now.getMinutes()).padStart(2, '0');
+                        const datetimeStr = `${month}/${day} ${hours}:${minutes}`;
+                        const timestampVal = now.getTime(); // ソート用にミリ秒単位のUnixタイムスタンプ
+
+                        const logData = {
+                            datetime: datetimeStr, // 表示用 (例: "MM/DD HH:MM")
+                            x: x,
+                            y: y,
+                            timestamp: timestampVal // ソート用
+                        };
+
+                        // Firebaseにログを追加
+                        await addDoc(collection(db, `logs/${i}/entries`), logData);
+                        console.log(`Log added to Firestore for set ${i}:`, logData);
+
+                        xCoordInput.value = '';
+                        yCoordInput.value = '';
+                    } catch (e) {
+                        console.error(`Error in log button click handler for set ${i}:`, e);
+                        showCustomAlert(`ログ記録中に予期せぬエラーが発生しました:\n${e.message}`);
+                    }
+                });
+                console.log(`Log button event listener attached for set ${i}.`);
+            } else {
+                console.warn(`Log button event listener NOT attached for set ${i} due to missing elements.`);
+            }
+
+            if (timerStartBtn && timerMinutesInput && timerDisplay && titleInput) {
+                timerStartBtn.addEventListener('click', () => {
+                    console.log(`Timer start button clicked for set ${i}`);
+                    try {
+                        const minutes = parseInt(timerMinutesInput.value);
+                        if (isNaN(minutes) || minutes <= 0) {
+                            showCustomAlert('1分以上の整数を入力してください。');
+                            return;
+                        }
+                        // タイマーの開始もFirebaseの状態として記録
+                        setDoc(doc(db, `timer_states/${i}`), { 
+                            remainingSeconds: minutes * 60, 
+                            isActive: true,
+                            initialMinutes: minutes, // 初期設定値も保存
+                            startTime: new Date().getTime() // 開始時刻
+                        }).catch(e => console.error("Error starting timer in Firestore:", e));
+                        
+                    } catch (e) {
+                        console.error(`Error in timer start button click handler for set ${i}:`, e);
+                        showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\\n${e.message}`);
+                    }
+                });
+                console.log(`Timer start button event listener attached for set ${i}.`);
+            } else {
+                console.warn(`Timer start button event listener NOT attached for set ${i} due to missing elements.`);
+            }
+
+            // タイマーリセットボタンのイベントリスナーを追加
+            if (timerResetBtn && timerDisplay && timerMinutesInput) {
+                timerResetBtn.addEventListener('click', () => {
+                    const initialMinutes = parseInt(timerMinutesInput.value) || 5; // 初期値を取得
+                    resetTimer(currentTimerId, timerDisplay, i, initialMinutes);
+                });
+                console.log(`Timer reset button event listener attached for set ${i}.`);
+            }
+
+            // 表のセル編集機能のセットアップ
+            logDisplayTableBody.addEventListener('click', async (event) => {
+                const cell = event.target;
+                // 日付セルや既に編集中のセル、空白のセルは編集しない
+                if (!cell.classList.contains('editable-cell') || cell.querySelector('input') || cell.textContent === 'ログはありません。') {
+                    return;
+                }
+
+                const originalText = cell.textContent;
+                const row = cell.closest('tr');
+                if (!row) return; // 行が見つからなければ何もしない
+
+                const docId = row.dataset.docId; // ドキュメントID
+                const currentSetId = parseInt(row.dataset.setId); // セットID
+                const fieldToUpdate = cell.dataset.field; // 'x' or 'y'
+
+                if (!docId || isNaN(currentSetId) || !fieldToUpdate) {
+                    console.error("Missing data-docId, data-setId, or data-field for cell edit.");
+                    return;
+                }
+
+                // input要素を作成
+                const input = document.createElement('input');
+                input.type = 'text'; // 数字以外も編集できるようにtextに
+                input.value = originalText;
+                input.style.width = '100%'; // セル幅に合わせる
+                input.style.padding = '2px';
+                input.style.boxSizing = 'border-box';
+                input.style.border = '1px solid #007bff';
+                input.style.borderRadius = '3px';
+                input.style.textAlign = 'center';
+                input.style.fontSize = 'inherit'; // 親のフォントサイズを継承
+
+                // セルの内容をinputに置き換える
+                cell.innerHTML = '';
+                cell.appendChild(input);
+                input.focus();
+
+                // 編集終了時の処理
+                const saveEdit = async () => {
+                    let newValue = input.value.trim();
+                    if (newValue === originalText) { // 変更がなければ何もしない
+                        cell.textContent = originalText;
+                        return;
+                    }
+
+                    try {
+                        // Firebaseのドキュメントを更新
+                        const logRef = doc(db, `logs/${currentSetId}/entries`, docId);
+                        await updateDoc(logRef, { [fieldToUpdate]: newValue });
+                        console.log(`Updated log ${fieldToUpdate} for doc ${docId} in set ${currentSetId}`);
+                        cell.textContent = newValue; // UIを更新
+                    } catch (e) {
+                        console.error(`Error updating log ${fieldToUpdate} for set ${currentSetId} in Firestore:`, e);
+                        showCustomAlert(`ログの更新に失敗しました。\nエラー: ${e.message}`);
+                        cell.textContent = originalText; // エラー時は元に戻す
+                    }
+                };
+
+                // Enterキーで保存
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        saveEdit();
+                        input.blur(); // フォーカスを外してblurイベントもトリガー
+                    }
+                });
+
+                // フォーカスが外れたら保存
+                input.addEventListener('blur', saveEdit);
+            });
+
+
+        } catch (error) {
+            console.error(`Critical error initializing input set ${i}:`, error);
+        }
+    }
+});
