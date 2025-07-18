@@ -8,10 +8,8 @@
 </head>
 <body>
     <div id="container">
-        <!-- アプリケーションのコンテンツはJavaScriptによってここに動的に生成されます -->
-    </div>
+        </div>
 
-    <!-- カスタムアラートポップアップのHTML -->
     <div id="custom-alert-overlay" class="hidden">
         <div id="custom-alert-box">
             <p id="custom-alert-message"></p>
@@ -19,7 +17,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDK の初期化と設定 -->
     <script type="module">
       // FirebaseコンソールからコピーしたfirebaseConfigオブジェクト
       const firebaseConfig = {
@@ -32,7 +29,7 @@
       };
 
       // Firebase の初期化に必要なモジュールをCDNからインポート
-      // Firebase SDKのバージョンは、Firebaseコンソールで推奨されるものに合わせてください
+      // Firebase SDKのバージョンは、Firebaseコンソールで推奨されるものに合わせてください (例: 9.23.0)
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
       import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
@@ -45,7 +42,6 @@
       window.db = db;
     </script>
     
-    <!-- メインのJavaScriptファイルをモジュールとして読み込み -->
     <script src="script.js" type="module"></script>
-</body>
+    </body>
 </html>

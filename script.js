@@ -1,4 +1,6 @@
-// script.js の一番上に必要なFirebase Firestore関数をインポート
+// script.js の一番上に追加または変更
+
+// Firebase Firestore の関数をインポート
 // index.html で使用している Firebase SDK のバージョンに合わせてください (例: 9.23.0)
 import { 
     doc, 
@@ -380,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         startTimer(currentTimerId, minutes * 60, timerDisplay, i, titleInput);
                     } catch (e) {
                         console.error(`Error in timer start button click handler for set ${i}:`, e);
-                        showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\n${e.message}`);
+                        showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\\n${e.message}`);
                     }
                 });
                 console.log(`Timer start button event listener attached for set ${i}.`);
