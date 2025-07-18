@@ -134,18 +134,25 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * タイマーを開始/更新する関数
      * @param {number} timerId - タイマーの識別子 (0-4)
-     * @param {number} minutes - 設定分数
+     * @param {number} minutes - 設定分数 (新規開始時のみ)
      * @param {HTMLElement} displayElement - タイマーを表示する要素
-     * @param {number} setId - セットID
      * @param {HTMLInputElement} titleInput - タイトル入力要素
+     * @param {number|null} initialEndTime - 保存された終了時刻 (ミリ秒)
      */
-    function startTimer(timerId, minutes, displayElement, setId, titleInput) {
+    function startTimer(timerId, minutes, displayElement, titleInput, initialEndTime = null) {
         if (timerIntervals[timerId]) {
             clearInterval(timerIntervals[timerId]);
         }
 
-        let totalSeconds = minutes * 60;
-        const endTime = Date.now() + totalSeconds * 1000;
+        let endTime;
+        if (initialEndTime) {
+            endTime = initialEndTime;
+        } else {
+            // 新規開始の場合のみminutesから計算
+            const totalSeconds = minutes * 60;
+            endTime = Date.now() + totalSeconds * 1000;
+            localStorage.setItem(`timer_endTime_${timerId}`, endTime); // 終了時刻を保存
+        }
 
         const updateTimer = () => {
             const remainingSeconds = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
@@ -157,6 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(timerIntervals[timerId]);
                 delete timerIntervals[timerId];
                 displayElement.textContent = '00:00';
+                localStorage.removeItem(`timer_endTime_${timerId}`); // 終了したら保存された時刻を削除
                 showCustomAlert(`タイマー終了: ${titleInput.value}`);
             }
         };
@@ -176,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             delete timerIntervals[timerId];
         }
         displayElement.textContent = '00:00';
+        localStorage.removeItem(`timer_endTime_${timerId}`); // 保存された時刻を削除
     }
 
 
@@ -215,12 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // 編集終了時の処理
         const saveEdit = () => {
             let newValue = input.value.trim();
-            // X,Y座標の場合は数値に変換（あるいは空文字列を許可）
-            if (colIndex === 1 || colIndex === 2) { // X or Y
-                // 数値に変換できない場合は元の値に戻すか、空を許可するか選択
-                // 今回は数値でない場合もそのまま文字列として保存できるように変更
-                // newValue = parseFloat(newValue) || ''; // 数値に変換できない場合は空文字列
-            }
             
             // 元のログ配列を取得
             const logs = loadLogs(setId);
@@ -276,6 +279,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // ログの読み込みと表示
             displayLogs(setId, loadLogs(setId), tbody);
 
+            // タイマーの自動再開処理
+            const savedEndTime = localStorage.getItem(`timer_endTime_${setId}`);
+            if (savedEndTime) {
+                const endTime = parseInt(savedEndTime);
+                if (endTime > Date.now()) { // 終了時刻がまだ未来の場合
+                    startTimer(setId, null, timerDisplay, titleInput, endTime);
+                } else {
+                    // 既に終了している場合はローカルストレージから削除し、表示をリセット
+                    localStorage.removeItem(`timer_endTime_${setId}`);
+                    timerDisplay.textContent = '00:00';
+                }
+            }
+
             // 記録ボタンのイベントリスナー
             if (logBtn && xInput && yInput && tbody) {
                 logBtn.addEventListener('click', () => {
@@ -298,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             showCustomAlert('1分以上の整数を入力してください。');
                             return;
                         }
-                        startTimer(setId, minutes, timerDisplay, setId, titleInput); // currentTimerId を setId に変更
+                        startTimer(setId, minutes, timerDisplay, titleInput);
                     } catch (e) {
                         console.error(`Error in timer start button click handler for set ${i}:`, e);
                         showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\\n${e.message}`);
