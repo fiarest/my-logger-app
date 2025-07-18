@@ -68,24 +68,33 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let lastDate = '';
+        let lastDateForSeparator = ''; // 日付区切り用の変数
         logs.forEach((log, index) => {
             const row = tbody.insertRow(0); // 最新のログを上に追加
             row.dataset.logIndex = index; // ログ配列内のインデックスを保持
 
             const date = new Date(log.timestamp);
-            const currentDate = date.toLocaleDateString('ja-JP');
+            
+            // 日付区切り線の判定用（yyyy/mm/dd形式で比較）
+            const currentDateForSeparator = date.toLocaleDateString('ja-JP');
 
-            if (currentDate !== lastDate && lastDate !== '') {
+            if (currentDateForSeparator !== lastDateForSeparator && lastDateForSeparator !== '') {
                 const separatorRow = tbody.insertRow(0); // 日付区切り行を挿入
                 const separatorCell = separatorRow.insertCell(0);
                 separatorCell.colSpan = 3;
                 separatorCell.className = 'log-entry-date-separator';
             }
-            lastDate = currentDate;
+            lastDateForSeparator = currentDateForSeparator;
+
+            // 日時の表示形式を mm/dd hh/mm に変更
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const formattedDateTime = `${month}/${day} ${hours}:${minutes}`;
 
             const timeCell = row.insertCell(0);
-            timeCell.textContent = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            timeCell.textContent = formattedDateTime;
 
             const xCell = row.insertCell(1);
             xCell.textContent = log.x;
