@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_LOG_ENTRIES = 15;
 
     const timerIntervals = {};
+    // 各タイマーの通知/アラートが一度表示されたか追跡するフラグ
+    // キーはセットID (0-4), 値はboolean (true: 表示済み, false: 未表示)
+    const timerNotifiedStatus = {}; 
 
     // カスタムアラート要素の取得
     const customAlertOverlay = document.getElementById('custom-alert-overlay');
@@ -131,25 +134,26 @@ document.addEventListener('DOMContentLoaded', () => {
             delete timerIntervals[timerId]; // clearInterval後にtimerIntervalsから削除
             displayElement.textContent = '00:00';
             // タイマー終了時にFirebaseの状態を更新 ( isActiveをfalseに )
+            // このsetDocがFirestoreを更新し、他のクライアントのonSnapshotをトリガーする
             setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: 0, isActive: false }, { merge: true }).catch(e => console.error("Error updating timer state in Firestore:", e));
             
-            // タイマー終了時のアラートと通知
-            const title = titleInput.value.trim();
-            const message = title ? `${title}のタイマーが終了しました！` : `セット${setId + 1}のタイマーが終了しました！`;
-            
-            showCustomAlert(message); // カスタムアラート表示
+            // ローカルでタイマーが終了した際に通知とアラートを表示
+            if (!timerNotifiedStatus[setId]) { // まだ通知されていない場合のみ実行
+                const title = titleInput.value.trim();
+                const message = title ? `${title}のタイマーが終了しました！` : `セット${setId + 1}のタイマーが終了しました！`;
+                
+                showCustomAlert(message); // カスタムアラート表示
 
-            // ブラウザ通知を表示
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification("タイマー終了", {
-                    body: message,
-                    // アイコンパスは、ウェブサイトのルートからの相対パスで指定します。
-                    // 例: 'https://fiarest.github.io/my-logger-app/favicon.ico'
-                    // アイコンが不要であれば、この行を削除またはコメントアウトしてください。
-                    // icon: 'https://fiarest.github.io/my-logger-app/favicon.ico' 
-                });
+                // ブラウザ通知を表示
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification("タイマー終了", {
+                        body: message,
+                        // icon: 'https://fiarest.github.io/my-logger-app/favicon.ico' // 通知に表示するアイコンのパス (任意、ウェブサイトのルートからの相対パスで指定)
+                        // favicon.icoのエラーが出ているため、一旦コメントアウトを維持します
+                    });
+                }
+                timerNotifiedStatus[setId] = true; // 通知済みフラグを立てる
             }
-
             return;
         }
 
@@ -178,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         displayElement.textContent = resetTime;
         // Firebaseのタイマー状態をリセット
         setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: initialMinutes * 60, isActive: false, initialMinutes: initialMinutes, startTime: null }, { merge: true }).catch(e => console.error("Error resetting timer in Firestore:", e));
+        timerNotifiedStatus[setId] = false; // リセット時に通知済みフラグを解除
     }
 
 
@@ -188,6 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     for (let i = 0; i < NUM_SETS; i++) {
+        // 各タイマーの通知済みフラグを初期化
+        timerNotifiedStatus[i] = false; 
+
         try {
             const inputSet = document.createElement('div');
             inputSet.classList.add('input-set');
@@ -331,54 +339,62 @@ document.addEventListener('DOMContentLoaded', () => {
             onSnapshot(doc(db, `timer_states/${i}`), (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    const currentIsActive = data.isActive || false; // 現在のisActive状態
+                    const currentRemainingSeconds = data.remainingSeconds || 0; // 現在の残り秒数
                     const initialMinutes = data.initialMinutes || parseInt(timerMinutesInput.value) || 5;
-                    const startTime = data.startTime; // nullまたはタイムスタンプ
-                    const isActive = data.isActive || false;
+                    const startTime = data.startTime;
 
                     if (timerIntervals[currentTimerId]) {
                         clearInterval(timerIntervals[currentTimerId]);
                         delete timerIntervals[currentTimerId];
                     }
 
-                    if (isActive && startTime) {
-                        // 開始時刻から現在までの経過時間を計算
-                        const elapsedTime = (new Date().getTime() - startTime) / 1000;
-                        let currentTotalSeconds = Math.max(0, (initialMinutes * 60) - Math.round(elapsedTime));
-
-                        if (currentTotalSeconds <= 0) {
-                            timerDisplay.textContent = '00:00';
-                            // 終了をFirestoreに反映
-                            setDoc(doc(db, `timer_states/${i}`), { remainingSeconds: 0, isActive: false, startTime: null }, { merge: true });
+                    // タイマーがFirestore上で「終了状態」になった場合
+                    if (!currentIsActive && currentRemainingSeconds <= 0) {
+                        timerDisplay.textContent = '00:00';
+                        if (!timerNotifiedStatus[i]) { // まだ通知されていない場合のみ実行
                             const title = titleInput.value.trim();
                             const message = title ? `${title}のタイマーが終了しました！` : `セット${i + 1}のタイマーが終了しました！`;
                             showCustomAlert(message); // カスタムアラート表示
-
-                            // ブラウザ通知を表示
                             if ("Notification" in window && Notification.permission === "granted") {
-                                new Notification("タイマー終了", {
-                                    body: message,
-                                    // icon: 'https://fiarest.github.io/my-logger-app/favicon.ico' // 通知に表示するアイコンのパス (任意、ウェブサイトのルートからの相対パスで指定)
-                                });
+                                new Notification("タイマー終了", { body: message });
                             }
+                            timerNotifiedStatus[i] = true; // 通知済みフラグを立てる
+                        }
+                    } 
+                    // タイマーがアクティブでカウントダウン中の場合
+                    else if (currentIsActive && startTime) {
+                        const elapsedTime = (new Date().getTime() - startTime) / 1000;
+                        let calculatedRemainingSeconds = Math.max(0, (initialMinutes * 60) - Math.round(elapsedTime));
 
+                        if (calculatedRemainingSeconds <= 0) {
+                            // Firestoreではまだactiveだが、計算上終了している場合
+                            // ローカルのupdateCountdownに処理を任せるため、Firestoreを更新して終了
+                            setDoc(doc(db, `timer_states/${i}`), { remainingSeconds: 0, isActive: false, startTime: null }, { merge: true });
+                            // このsetDocがFirestoreを更新し、その結果onSnapshotが再度トリガーされ、
+                            // 上記の「タイマーがFirestore上で『終了状態』になった場合」のブロックで通知される
                         } else {
-                            // タイマーを再開/同期
-                            updateCountdown(currentTimerId, currentTotalSeconds, timerDisplay, i, titleInput);
+                            // タイマーはまだ実行中
+                            updateCountdown(currentTimerId, calculatedRemainingSeconds, timerDisplay, i, titleInput);
                             timerIntervals[currentTimerId] = setInterval(() => {
-                                // 毎回正確な残り時間を計算し直す
                                 const newElapsedTime = (new Date().getTime() - startTime) / 1000;
                                 let newTotalSeconds = Math.max(0, (initialMinutes * 60) - Math.round(newElapsedTime));
                                 updateCountdown(currentTimerId, newTotalSeconds, timerDisplay, i, titleInput);
                             }, 1000);
+                            timerNotifiedStatus[i] = false; // アクティブになったら通知済みフラグを解除
                         }
-                    } else { // isActiveがfalseの場合、またはstartTimeがない場合 (リセット状態など)
-                        const minutes = Math.floor((data.remainingSeconds || initialMinutes * 60) / 60);
-                        const seconds = (data.remainingSeconds || initialMinutes * 60) % 60;
+                    } 
+                    // タイマーがアクティブではないが、まだ0ではない（停止中やリセット状態）
+                    else { 
+                        const minutes = Math.floor(currentRemainingSeconds / 60);
+                        const seconds = currentRemainingSeconds % 60;
                         timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                        timerNotifiedStatus[i] = false; // 通知済みフラグを解除
                     }
                 } else {
                     // ドキュメントが存在しない場合はデフォルトの表示
                     timerDisplay.textContent = `${String(parseInt(timerMinutesInput.value)).padStart(2, '0')}:00`;
+                    timerNotifiedStatus[i] = false; // 通知済みフラグを解除
                 }
             }, (error) => {
                 console.error(`Error loading timer state for set ${i} from Firestore:`, error);
@@ -517,6 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             startTime: new Date().getTime() // 開始時刻
                         }).catch(e => console.error("Error starting timer in Firestore:", e));
                         
+                        timerNotifiedStatus[i] = false; // タイマー開始時に通知済みフラグをリセット
                     } catch (e) {
                         console.error(`Error in timer start button click handler for set ${i}:`, e);
                         showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\\n${e.message}`);
