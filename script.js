@@ -53,13 +53,17 @@ document.addEventListener('DOMContentLoaded', () => {
         customAlertOverlay.style.opacity = '1'; // 透明度も確実に1に
         customAlertOverlay.style.zIndex = '1000'; // z-indexも確実に設定
 
-        // hiddenクラスの除去は不要になるため削除
-        // customAlertOverlay.classList.remove('hidden'); 
-
         console.log("Custom alert overlay display style after showCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
-        // ポップアップの外側をクリックしたら閉じるイベントリスナー
-        customAlertOverlay.addEventListener('click', closeCustomAlert);
-        // ポップアップボックス内の「閉じる」ボタンのイベントリスナー
+
+        // ポップアップの外側をクリックしたら閉じるイベントリスナーを少し遅延して追加
+        // これにより、ポップアップ表示を引き起こしたクリックイベントが、
+        // ポップアップのクリックイベントリスナーを意図せずトリガーするのを防ぐ
+        setTimeout(() => {
+            customAlertOverlay.addEventListener('click', closeCustomAlert);
+            console.log("Overlay click listener added."); // デバッグログ
+        }, 50); // 50ミリ秒の遅延
+
+        // ポップアップボックス内の「閉じる」ボタンのイベントリスナー（これは即座に追加）
         customAlertCloseBtn.addEventListener('click', closeCustomAlert);
         // ポップアップボックス自体へのクリックは伝播させない
         customAlertBox.addEventListener('click', (e) => e.stopPropagation());
@@ -78,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("Custom alert overlay display style after closeCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
         // イベントリスナーを削除（重複して追加されないように）
+        // setTimeoutで追加されたものをremoveするために、同じ参照を渡す
         customAlertOverlay.removeEventListener('click', closeCustomAlert);
         customAlertCloseBtn.removeEventListener('click', closeCustomAlert);
         customAlertBox.removeEventListener('click', (e) => e.stopPropagation());
