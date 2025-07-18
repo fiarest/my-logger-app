@@ -28,14 +28,11 @@
         appId: "1:1020461370240:web:7635b47753882f68cd4f65"
       };
 
-      // Firebase の初期化に必要なモジュールをCDNからインポート
-      // Firebase SDKのバージョンは、Firebaseコンソールで推奨されるものに合わせてください (例: 9.23.0)
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-      import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
       // Firebase アプリを初期化
+      import { initializeApp } => "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+      import { getFirestore } => "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
       const app = initializeApp(firebaseConfig);
-      // Firestore データベースのインスタンスを取得
       const db = getFirestore(app);
 
       // db オブジェクトを window に公開し、script.js からアクセスできるようにします。

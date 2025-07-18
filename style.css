@@ -1,6 +1,198 @@
-/* style.css */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 10px;
+    background-color: #f8f8f8;
+    color: #333;
+    line-height: 1.5;
+    font-size: 0.9em;
+}
 
-/* ... 既存のスタイル ... */
+#container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.input-set {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    width: 280px; /* セット全体の幅を固定 */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.1s ease-in-out;
+}
+
+.input-set:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* タイトル入力欄のスタイル */
+.input-set .title-section {
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.input-set .title-section input[type="text"] {
+    width: 100%;
+    padding: 7px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.85em;
+    box-sizing: border-box;
+}
+
+/* タイマーコントロールと表示 */
+.timer-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.timer-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.timer-input {
+    width: 65px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.85em;
+    text-align: center;
+}
+
+/* type="number"の上下矢印を非表示にする */
+.timer-input::-webkit-outer-spin-button,
+.timer-input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0;
+}
+.timer-input[type=number] {
+    -moz-appearance: textfield !important;
+    appearance: none !important;
+}
+
+.timer-button {
+    background-color: #666;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: background-color 0.2s ease;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    white-space: nowrap;
+}
+
+.timer-button:hover {
+    background-color: #555;
+}
+
+.timer-display {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+    padding: 3px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f0f0f0;
+    flex-shrink: 0;
+}
+
+/* X/Y座標の入力欄とラベル、記録ボタンの配置を管理するコンテナ */
+.coord-log-container {
+    display: flex;
+    align-items: center; /* 垂直方向中央寄せ */
+    justify-content: space-between; /* X/Y入力グループとボタンの間にスペースを最大限取る */
+    width: 100%;
+    margin-bottom: 8px;
+    gap: 5px;
+}
+
+/* X/Y座標と日時入力欄のコンテナ */
+.coord-inputs {
+    display: flex;
+    gap: 8px; /* 入力間の隙間 */
+    flex-grow: 1; /* 残りのスペースを埋める */
+    flex-wrap: wrap; /* 必要に応じて折り返す */
+}
+
+.coord-inputs > div {
+    display: flex;
+    flex-direction: column; /* ラベルと入力欄を縦に並べる */
+    align-items: flex-start; /* 左寄せ */
+    /* 各入力グループが柔軟に伸縮できるように */
+    flex: 1 1 auto; /* 最小幅以下には縮まないように */
+    min-width: 70px; /* 各入力グループの最小幅 */
+}
+
+.coord-inputs label {
+    font-size: 0.8em;
+    color: #555;
+    margin-bottom: 2px;
+}
+
+.coord-inputs input[type="number"],
+.coord-inputs input[type="text"] {
+    width: 100%; /* 親要素(div)の幅いっぱいに広がる */
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9em;
+    box-sizing: border-box; /* パディングとボーダーをwidthに含める */
+}
+
+/* 日時入力欄の幅を調整 */
+.coord-inputs input[type="text"][id^="datetime-input-"] {
+    width: 120px; /* 日時入力欄の幅を広くする */
+    min-width: 100px;
+    flex-grow: 0; /* 縮小させず、固定幅を維持 */
+}
+/* X, Y座標入力欄の幅を調整 */
+.coord-inputs input[type="number"][id^="x-coord-"],
+.coord-inputs input[type="number"][id^="y-coord-"] {
+    width: 60px; /* X,Yの入力欄の幅を狭くする */
+    min-width: 50px;
+    flex-grow: 0; /* 縮小させず、固定幅を維持 */
+}
+
+/* 記録ボタンのスタイル */
+.coord-log-container button {
+    background-color: #555;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: normal;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+    box-sizing: border-box;
+    flex-shrink: 0; /* 縮小させない */
+    width: 55px; /* 記録ボタンの幅を固定 */
+    height: auto; /* ボタンの高さをコンテンツに合わせる */
+    align-self: flex-end; /* coord-inputsの高さに合わせる */
+    margin-bottom: 2px; /* ラベルとinputの高さに合わせて調整 */
+}
+
+.coord-log-container button:hover {
+    background-color: #444;
+}
 
 .log-display {
     width: 100%;
@@ -54,5 +246,80 @@
 }
 /* ★ここまで列幅の調整を追加★ */
 
+/* 最新のログが上に来るようにする */
+.log-table tbody {
+    display: flex;
+    flex-direction: column-reverse;
+}
 
-/* ... 既存のスタイル ... */
+.log-table tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+/* 日付が変わった場合の赤い線 */
+.log-entry-date-separator {
+    border-top: 2px solid #e74c3c;
+    margin-top: 5px;
+    padding-top: 5px;
+}
+
+
+/* カスタムアラートポップアップのスタイル */
+#custom-alert-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#custom-alert-overlay.hidden {
+    display: none;
+}
+
+#custom-alert-box {
+    background-color: #fff;
+    padding: 25px 35px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    max-width: 350px;
+    width: 90%;
+    animation: fadeIn 0.3s ease-out;
+    position: relative;
+}
+
+#custom-alert-box p {
+    font-size: 1.1em;
+    margin-bottom: 20px;
+    color: #333;
+    white-space: pre-wrap;
+}
+
+#custom-alert-close-btn {
+    background-color: #666;
+    color: white;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s ease;
+}
+
+#custom-alert-close-btn:hover {
+    background-color: #555;
+}
+
+/* フェードインアニメーション */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
