@@ -120,7 +120,7 @@ body {
     justify-content: space-between; /* X/Y入力グループとボタンの間にスペースを最大限取る */
     width: 100%;
     margin-bottom: 8px;
-    gap: 8px; /* ここを広げることで、記録ボタンとの間隔を確保 */
+    gap: 5px; /* 記録ボタンとの間隔 */
 }
 
 /* X/Y座標の入力欄とラベルのコンテナ */
@@ -155,19 +155,19 @@ body {
 /* input-set内の全ての数値入力欄に適用される */
 .input-set input[type="number"] {
     flex: 1; /* ラベルの横で残りのスペースを埋めるように */
-    padding: 5px; /* パディングを減らす */
+    padding: 4px; /* パディングを減らす */
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.85em;
     box-sizing: border-box;
-    /* min-width, max-width は不要 */
+    /* min-width, max-width を削除してflexに任せる */
     -webkit-appearance: none !important;
     -moz-appearance: textfield !important;
     appearance: none !important;
 }
 
 /* 記録ボタンのスタイル */
-.coord-log-container button { 
+#log-btn-0, #log-btn-1, #log-btn-2, #log-btn-3, #log-btn-4 {
     background-color: #555;
     color: white;
     padding: 5px 10px;
@@ -184,37 +184,37 @@ body {
     height: 32px; /* 入力欄の高さに合わせるために明示的に設定 */
 }
 
-.coord-log-container button:hover {
+#log-btn-0:hover, #log-btn-1:hover, #log-btn-2:hover, #log-btn-3:hover, #log-btn-4:hover {
     background-color: #444;
 }
 
 /* 表の表示エリアのスタイル */
 .log-display {
-    margin-top: 5px; /* 表の上下のスペースを狭める */
-    margin-bottom: 5px; /* 表の上下のスペースを狭める */
+    margin-top: 5px;
+    margin-bottom: 5px;
     width: 100%;
-    border: 1px solid #333; /* 表の周りの線を黒くする */
-    border-radius: 0; /* 角丸をなくす */
+    border: 1px solid #333;
+    border-radius: 0;
     background-color: #fcfcfc;
-    padding: 0; /* 内側のパディングをなくす */
-    overflow: hidden; /* 子要素がはみ出さないように */
+    padding: 0;
+    overflow: hidden;
 }
 
 .log-table {
     width: 100%;
-    border-collapse: collapse; /* セルの境界線を結合 */
-    table-layout: fixed; /* テーブルレイアウトを固定にする */
+    border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .log-table th,
 .log-table td {
-    padding: 4px 5px; /* 上下左右のパディングを少し減らしてスペースを狭める */
-    border: 1px solid #333; /* 全てのセルに黒いボーダー */
-    text-align: center; /* 中央揃え */
-    white-space: nowrap; /* テキストの折り返しを防ぐ */
-    overflow: hidden; /* はみ出したテキストを隠す */
-    text-overflow: ellipsis; /* はみ出したテキストを...で表示 */
-    font-size: 0.95em; /* フォントサイズを少し大きくする */
+    padding: 4px 5px;
+    border: 1px solid #333;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
 }
 
 .log-table th {
@@ -227,19 +227,18 @@ body {
 }
 
 /* 列幅の調整 */
-.log-table th:nth-child(1), /* 日時列 (1番目のth/td) */
+.log-table th:nth-child(1),
 .log-table td:nth-child(1) {
-    width: 120px; /* 日時列の幅を広げる */
-    min-width: 100px; /* 最小幅を設定 */
+    width: 120px;
+    min-width: 100px;
 }
 
-.log-table th:nth-child(2), /* X座標列 (2番目のth/td) */
+.log-table th:nth-child(2),
 .log-table td:nth-child(2),
-.log-table th:nth-child(3), /* Y座標列 (3番目のth/td) */
+.log-table th:nth-child(3),
 .log-table td:nth-child(3) {
-    /* X,Yの合計で残りの幅を均等に割る */
-    width: calc((100% - 120px) / 2); 
-    min-width: 60px; /* 最小幅を設定 */
+    width: calc((100% - 120px) / 2);
+    min-width: 60px;
 }
 
 /* 最新のログが上に来るようにする */
