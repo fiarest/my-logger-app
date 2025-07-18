@@ -14,6 +14,10 @@ import {
     updateDoc // ドキュメント更新用にインポート
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
+// === グローバル変数 ===
+let canCloseAlert = false; // ポップアップがクリックで閉じられる状態か管理するフラグ
+
+
 document.addEventListener('DOMContentLoaded', () => {
     const NUM_SETS = 5;
     const MAX_LOG_ENTRIES = 15;
@@ -44,15 +48,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // ** ポップアップ関連のイベントリスナーをDOM Content Loaded で一度だけ追加 **
     if (customAlertOverlay) {
         customAlertOverlay.addEventListener('click', (e) => {
-            // オーバーレイ自体がクリックされた場合のみ閉じる (子要素へのクリックは無視)
-            if (e.target === customAlertOverlay) {
+            // canCloseAlertがtrueで、かつオーバーレイ自体がクリックされた場合のみ閉じる
+            if (canCloseAlert && e.target === customAlertOverlay) {
                 closeCustomAlert();
             }
         });
         console.log("Overlay click listener attached permanently."); // デバッグログ
     }
     if (customAlertCloseBtn) {
-        customAlertCloseBtn.addEventListener('click', closeCustomAlert);
+        customAlertCloseBtn.addEventListener('click', () => { // 直接閉じるボタンのリスナー
+            if (canCloseAlert) { // canCloseAlertがtrueの場合のみ閉じる
+                closeCustomAlert();
+            }
+        });
         console.log("Close button click listener attached permanently."); // デバッグログ
     }
     if (customAlertBox) {
@@ -74,7 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("Custom alert overlay display style after showCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
 
-        // イベントリスナーはDOM Content Loadedで永続的に追加されているため、ここでは追加しない
+        // ポップアップ表示直後のクリックを無視するためのフラグ設定
+        canCloseAlert = false; 
+        console.log("canCloseAlert set to false."); // デバッグログ
+
+        // 短い遅延後にクリックを許可
+        setTimeout(() => {
+            canCloseAlert = true;
+            console.log("canCloseAlert set to true after delay."); // デバッグログ
+        }, 150); // 150ミリ秒の遅延
     }
 
     /**
@@ -86,7 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
         customAlertOverlay.style.display = 'none';
 
         console.log("Custom alert overlay display style after closeCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
-        // イベントリスナーはDOM Content Loadedで永続的に追加されているため、ここでは削除しない
+        
+        // 閉じた後、すぐに閉じられないようにフラグをリセット
+        canCloseAlert = false;
+        console.log("canCloseAlert reset to false after close."); // デバッグログ
     }
 
     /**
