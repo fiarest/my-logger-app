@@ -155,7 +155,7 @@ body {
 /* input-set内の全ての数値入力欄に適用される */
 .input-set input[type="number"] {
     flex: 1; /* ラベルの横で残りのスペースを埋めるように */
-    padding: 3px; /* パディングをさらに減らす */
+    padding: 2px 4px; /* パディングをさらに減らす */
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.85em;
