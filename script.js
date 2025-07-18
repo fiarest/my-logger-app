@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const customAlertBox = document.getElementById('custom-alert-box');
     const customAlertMessage = document.getElementById('custom-alert-message');
     const customAlertCloseBtn = document.getElementById('custom-alert-close-btn');
+    
+    // 新しく追加した通知有効化ボタンの要素を取得
+    const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
 
     // Firebase Firestore のインスタンスを取得
     const db = window.db; 
@@ -68,19 +71,28 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn("このブラウザは通知に対応していません。");
             return;
         }
+        // すでに許可されているか拒否されている場合は処理を終える
         if (Notification.permission === "granted") {
             console.log("通知はすでに許可されています。");
+            showCustomAlert("通知はすでに許可されています。");
+            // ボタンを無効にするなどのUI変更
+            if (enableNotificationsBtn) enableNotificationsBtn.disabled = true;
             return;
         }
         if (Notification.permission === "denied") {
             console.warn("通知が拒否されています。ブラウザ設定から変更してください。");
             showCustomAlert("ブラウザ通知が拒否されています。\nブラウザの設定から通知を許可してください。");
+            // ボタンを無効にするなどのUI変更
+            if (enableNotificationsBtn) enableNotificationsBtn.disabled = true;
             return;
         }
 
+        // 通知許可をリクエスト
         Notification.requestPermission().then(permission => {
             if (permission === "granted") {
                 console.log("通知が許可されました。");
+                showCustomAlert("通知が許可されました！タイマー終了時に通知されます。");
+                if (enableNotificationsBtn) enableNotificationsBtn.disabled = true; // 許可されたらボタンを無効化
             } else {
                 console.warn("通知が拒否されました。");
                 showCustomAlert("通知の許可がされませんでした。\nタイマー終了時に通知を表示できません。");
@@ -91,11 +103,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ページロード時に通知許可を求める (またはボタンクリック時など、ユーザーの操作に応じて)
-    // 初回アクセス時に自動で許可を求めるとユーザーに嫌がられる可能性があるので、
-    // ここではページロード時に自動でリクエストするようになっています。
-    // 必要に応じて、例えば「通知を有効にする」ボタンを押したときにこの関数を呼び出すように変更できます。
-    requestNotificationPermission();
+    // ページロード時に自動で通知許可を求めない
+    // 代わりに、ユーザーが明示的にクリックするボタンにイベントリスナーを設定する
+
+    // 新しく追加した「通知を有効にする」ボタンのイベントリスナー
+    if (enableNotificationsBtn) {
+        enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
+        // 現在の許可状態に基づいてボタンの状態を初期設定
+        if (Notification.permission === "granted" || Notification.permission === "denied") {
+             enableNotificationsBtn.disabled = true;
+             // 許可されている場合はボタンのテキストを変更するなどのUIフィードバックも検討
+        }
+    }
 
 
     /**
@@ -124,7 +143,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if ("Notification" in window && Notification.permission === "granted") {
                 new Notification("タイマー終了", {
                     body: message,
-                    icon: '/path/to/your/icon.png' // 通知に表示するアイコンのパス (任意、相対パスでOK)
+                    // アイコンパスは、ウェブサイトのルートからの相対パスで指定します。
+                    // 例: 'https://fiarest.github.io/my-logger-app/favicon.ico'
+                    // アイコンが不要であれば、この行を削除またはコメントアウトしてください。
+                    // icon: 'https://fiarest.github.io/my-logger-app/favicon.ico' 
                 });
             }
 
@@ -335,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if ("Notification" in window && Notification.permission === "granted") {
                                 new Notification("タイマー終了", {
                                     body: message,
-                                    // icon: '/path/to/your/icon.png' // 通知に表示するアイコンのパス (任意、ウェブサイトのルートからの相対パスで指定)
+                                    // icon: 'https://fiarest.github.io/my-logger-app/favicon.ico' // 通知に表示するアイコンのパス (任意、ウェブサイトのルートからの相対パスで指定)
                                 });
                             }
 
