@@ -116,27 +116,28 @@ body {
 /* X/Y座標の入力欄とラベル、記録ボタンの配置を管理するコンテナ */
 .coord-log-container {
     display: flex;
-    align-items: center; /* 垂直方向中央寄せ */
-    justify-content: space-between; /* X/Y入力グループとボタンの間にスペースを最大限取る */
+    align-items: flex-end; /* ボタンが入力欄の下に揃うように */
+    justify-content: space-between;
     width: 100%;
     margin-bottom: 8px;
     gap: 5px;
 }
 
-/* X/Y座標入力欄のコンテナ (日時入力欄は削除) */
+/* X/Y座標入力欄のコンテナ (横並びにする) */
 .coord-inputs {
-    display: flex;
+    display: flex; /* Flexbox を使用 */
+    flex-direction: row; /* 横並びにする */
     gap: 8px; /* 入力間の隙間 */
     flex-grow: 1; /* 残りのスペースを埋める */
-    flex-wrap: wrap; /* 必要に応じて折り返す */
+    flex-wrap: nowrap; /* 必要に応じて折り返さない */
 }
 
 .coord-inputs > div {
     display: flex;
     flex-direction: column; /* ラベルと入力欄を縦に並べる */
     align-items: flex-start; /* 左寄せ */
-    flex: 1 1 auto; /* 各入力グループが柔軟に伸縮できるように */
-    min-width: 70px; /* 各入力グループの最小幅 */
+    flex: 1 1 auto; /* 各入力グループが柔軟に伸縮 */
+    min-width: 60px; /* 各入力グループの最小幅 */
 }
 
 .coord-inputs label {
@@ -153,14 +154,6 @@ body {
     font-size: 0.9em;
     box-sizing: border-box; /* パディングとボーダーをwidthに含める */
 }
-
-/* X, Y座標入力欄の幅を調整 (日時入力欄がないため、以前の指定を削除・統合) */
-/* .coord-inputs input[type="number"][id^="x-coord-"], */
-/* .coord-inputs input[type="number"][id^="y-coord-"] { */
-/* width: 60px; */
-/* min-width: 50px; */
-/* flex-grow: 0; */
-/* } */
 
 /* 記録ボタンのスタイル */
 .coord-log-container button {
@@ -188,29 +181,29 @@ body {
 
 .log-display {
     width: 100%;
-    /* max-height: 200px; を削除してスクロールをなくす */
     overflow-y: visible; /* スクロールをなくす */
-    border: 1px solid #e0e0e0;
+    border: 1px solid #333; /* 表全体を囲む線も黒に変更 */
     border-radius: 6px;
-    margin-top: 15px;
+    margin-top: 5px; /* 表の上下のスペースを狭める */
+    margin-bottom: 5px; /* 表の上下のスペースを狭める */
     background-color: #fcfcfc;
 }
 
 .log-table {
     width: 100%;
     border-collapse: collapse; /* セルの境界線を結合 */
-    table-layout: fixed; /* ★重要: テーブルレイアウトを固定にする */
+    table-layout: fixed; /* テーブルレイアウトを固定にする */
 }
 
 .log-table th,
 .log-table td {
-    padding: 8px 5px; /* 上下左右のパディングを少し減らす */
-    border-bottom: 1px solid #eee;
+    padding: 4px 5px; /* 上下左右のパディングを少し減らしてスペースを狭める */
+    border-bottom: 1px solid #333; /* 黒い線に変更 */
     text-align: center; /* 中央揃え */
     white-space: nowrap; /* テキストの折り返しを防ぐ */
     overflow: hidden; /* はみ出したテキストを隠す */
     text-overflow: ellipsis; /* はみ出したテキストを...で表示 */
-    font-size: 0.85em; /* フォントサイズを少し小さくする */
+    font-size: 0.95em; /* フォントサイズを少し大きくする */
 }
 
 .log-table th {
@@ -222,7 +215,7 @@ body {
     z-index: 1;
 }
 
-/* ★ここから列幅の調整 (日時入力欄削除後の最適化)★ */
+/* 列幅の調整 */
 .log-table th:nth-child(1), /* 日時列 (1番目のth/td) */
 .log-table td:nth-child(1) {
     width: 120px; /* 日時列の幅を広げる */
@@ -237,7 +230,6 @@ body {
     width: calc((100% - 120px) / 2); 
     min-width: 60px; /* 最小幅を設定 */
 }
-/* ★ここまで列幅の調整★ */
 
 /* 最新のログが上に来るようにする */
 .log-table tbody {
