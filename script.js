@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             inputSet.classList.add('input-set');
             inputSet.id = `input-set-${i}`;
 
-            // HTML構造は変更なし
+            // 日時入力欄を削除したHTML構造
             inputSet.innerHTML = `
                 <div class="title-section">
                     <input type="text" id="title-${i}" placeholder="タイトル">
@@ -142,10 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="coord-log-container">
                     <div class="coord-inputs">
-                        <div>
-                            <label for="datetime-input-${i}">日時</label>
-                            <input type="text" id="datetime-input-${i}" placeholder="MM/DD HH:MM">
-                        </div>
                         <div>
                             <label for="x-coord-${i}">X</label>
                             <input type="number" id="x-coord-${i}" step="any">
@@ -182,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const logButton = document.getElementById(`log-btn-${i}`);
             const logDisplayTableBody = inputSet.querySelector(`#log-display-${i} tbody`);
             const commentInput = document.getElementById(`comment-${i}`);
-            const datetimeInput = document.getElementById(`datetime-input-${i}`); // 日時入力欄を取得
+            // datetimeInput は削除されたので取得しない
 
             const timerMinutesInput = document.getElementById(`timer-minutes-${i}`);
             const timerStartBtn = document.getElementById(`timer-start-btn-${i}`);
@@ -324,63 +320,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            if (logButton && xCoordInput && yCoordInput && logDisplayTableBody && datetimeInput) { // datetimeInputも条件に追加
-                logButton.addEventListener('click', async () => { // async を追加
+            // ログ記録ボタンのイベントリスナー (日時入力欄の処理を削除)
+            if (logButton && xCoordInput && yCoordInput && logDisplayTableBody) {
+                logButton.addEventListener('click', async () => {
                     console.log(`Log button clicked for set ${i}`);
                     try {
                         const x = xCoordInput.value;
                         const y = yCoordInput.value;
-                        let datetimeStr;
-                        let timestampVal;
-
+                        
                         if (x === '' || y === '') {
                             showCustomAlert('XとYの両方を入力してください。');
                             return;
                         }
 
-                        if (datetimeInput.value.trim() !== '') {
-                            // 日時が入力されていればその値を使用
-                            datetimeStr = datetimeInput.value.trim();
-                            // タイムスタンプは、入力された日時文字列から生成を試みる
-                            // 形式: MM/DD HH:MM を仮定 (例: 07/18 14:30)
-                            const now = new Date();
-                            const year = now.getFullYear(); // 今年の年を仮定
-                            const [datePart, timePart] = datetimeStr.split(' ');
-                            const [month, day] = datePart.split('/');
-                            const [hours, minutes] = timePart.split(':');
-                            
-                            // Dateオブジェクトの月は0始まりなので month-1
-                            const parsedDate = new Date(year, parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
-                            timestampVal = parsedDate.getTime();
-
-                            // 不正な日時が入力された場合の簡易的なチェック
-                            if (isNaN(timestampVal) || parsedDate.getFullYear() !== year || parsedDate.getMonth() !== (parseInt(month) - 1)) {
-                                console.warn("Invalid date format entered, falling back to current time.", datetimeStr);
-                                const currentNow = new Date();
-                                const currentMonth = String(currentNow.getMonth() + 1).padStart(2, '0');
-                                const currentDay = String(currentNow.getDate()).padStart(2, '0');
-                                const currentHours = String(currentNow.getHours()).padStart(2, '0');
-                                const currentMinutes = String(currentNow.getMinutes()).padStart(2, '0');
-                                datetimeStr = `${currentMonth}/${currentDay} ${currentHours}:${currentMinutes}`;
-                                timestampVal = currentNow.getTime();
-                            }
-
-                        } else {
-                            // 日時が入力されていなければ現在時刻を使用
-                            const now = new Date();
-                            const month = String(now.getMonth() + 1).padStart(2, '0');
-                            const day = String(now.getDate()).padStart(2, '0');
-                            const hours = String(now.getHours()).padStart(2, '0');
-                            const minutes = String(now.getMinutes()).padStart(2, '0');
-                            datetimeStr = `${month}/${day} ${hours}:${minutes}`;
-                            timestampVal = now.getTime();
-                        }
+                        // 現在時刻を自動で取得して日時とする
+                        const now = new Date();
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const day = String(now.getDate()).padStart(2, '0');
+                        const hours = String(now.getHours()).padStart(2, '0');
+                        const minutes = String(now.getMinutes()).padStart(2, '0');
+                        const datetimeStr = `${month}/${day} ${hours}:${minutes}`;
+                        const timestampVal = now.getTime();
 
                         const logData = {
                             datetime: datetimeStr,
                             x: x,
                             y: y,
-                            timestamp: timestampVal // ここも修正
+                            timestamp: timestampVal
                         };
 
                         // Firebaseにログを追加
@@ -389,7 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         xCoordInput.value = '';
                         yCoordInput.value = '';
-                        datetimeInput.value = ''; // 日時入力欄もクリア
                     } catch (e) {
                         console.error(`Error in log button click handler for set ${i}:`, e);
                         showCustomAlert(`ログ記録中に予期せぬエラーが発生しました:\n${e.message}`);

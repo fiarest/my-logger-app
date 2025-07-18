@@ -123,7 +123,7 @@ body {
     gap: 5px;
 }
 
-/* X/Y座標と日時入力欄のコンテナ */
+/* X/Y座標入力欄のコンテナ (日時入力欄は削除) */
 .coord-inputs {
     display: flex;
     gap: 8px; /* 入力間の隙間 */
@@ -135,8 +135,7 @@ body {
     display: flex;
     flex-direction: column; /* ラベルと入力欄を縦に並べる */
     align-items: flex-start; /* 左寄せ */
-    /* 各入力グループが柔軟に伸縮できるように */
-    flex: 1 1 auto; /* 最小幅以下には縮まないように */
+    flex: 1 1 auto; /* 各入力グループが柔軟に伸縮できるように */
     min-width: 70px; /* 各入力グループの最小幅 */
 }
 
@@ -146,8 +145,7 @@ body {
     margin-bottom: 2px;
 }
 
-.coord-inputs input[type="number"],
-.coord-inputs input[type="text"] {
+.coord-inputs input[type="number"] {
     width: 100%; /* 親要素(div)の幅いっぱいに広がる */
     padding: 6px 8px;
     border: 1px solid #ccc;
@@ -156,19 +154,13 @@ body {
     box-sizing: border-box; /* パディングとボーダーをwidthに含める */
 }
 
-/* 日時入力欄の幅を調整 */
-.coord-inputs input[type="text"][id^="datetime-input-"] {
-    width: 120px; /* 日時入力欄の幅を広くする */
-    min-width: 100px;
-    flex-grow: 0; /* 縮小させず、固定幅を維持 */
-}
-/* X, Y座標入力欄の幅を調整 */
-.coord-inputs input[type="number"][id^="x-coord-"],
-.coord-inputs input[type="number"][id^="y-coord-"] {
-    width: 60px; /* X,Yの入力欄の幅を狭くする */
-    min-width: 50px;
-    flex-grow: 0; /* 縮小させず、固定幅を維持 */
-}
+/* X, Y座標入力欄の幅を調整 (日時入力欄がないため、以前の指定を削除・統合) */
+/* .coord-inputs input[type="number"][id^="x-coord-"], */
+/* .coord-inputs input[type="number"][id^="y-coord-"] { */
+/* width: 60px; */
+/* min-width: 50px; */
+/* flex-grow: 0; */
+/* } */
 
 /* 記録ボタンのスタイル */
 .coord-log-container button {
@@ -196,8 +188,8 @@ body {
 
 .log-display {
     width: 100%;
-    max-height: 200px; /* 必要に応じて調整 */
-    overflow-y: auto; /* ログが多くなった場合にスクロール可能にする */
+    /* max-height: 200px; を削除してスクロールをなくす */
+    overflow-y: visible; /* スクロールをなくす */
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     margin-top: 15px;
@@ -230,7 +222,7 @@ body {
     z-index: 1;
 }
 
-/* ★ここから列幅の調整を追加★ */
+/* ★ここから列幅の調整 (日時入力欄削除後の最適化)★ */
 .log-table th:nth-child(1), /* 日時列 (1番目のth/td) */
 .log-table td:nth-child(1) {
     width: 120px; /* 日時列の幅を広げる */
@@ -241,10 +233,11 @@ body {
 .log-table td:nth-child(2),
 .log-table th:nth-child(3), /* Y座標列 (3番目のth/td) */
 .log-table td:nth-child(3) {
-    width: 80px; /* X,Y座標列の幅を狭める */
+    /* X,Yの合計で残りの幅を均等に割る */
+    width: calc((100% - 120px) / 2); 
     min-width: 60px; /* 最小幅を設定 */
 }
-/* ★ここまで列幅の調整を追加★ */
+/* ★ここまで列幅の調整★ */
 
 /* 最新のログが上に来るようにする */
 .log-table tbody {
