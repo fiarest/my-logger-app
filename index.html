@@ -10,10 +10,6 @@
     <div id="container">
         </div>
 
-    <div style="text-align: center; margin-top: 20px;">
-        <button id="enable-notifications-btn" class="timer-button">通知を有効にする</button>
-    </div>
-
     <div id="custom-alert-overlay" class="hidden">
         <div id="custom-alert-box">
             <p id="custom-alert-message"></p>
@@ -38,9 +34,13 @@
 
       // Firebase アプリを初期化
       const app = initializeApp(firebaseConfig);
-      // Firestore のインスタンスを取得
-      window.db = getFirestore(app);
+      // Firestore データベースのインスタンスを取得
+      const db = getFirestore(app);
+
+      // db オブジェクトを window に公開し、script.js からアクセスできるようにします。
+      window.db = db;
     </script>
-    <script type="module" src="script.js"></script>
+    
+    <script src="script.js" type="module"></script>
 </body>
 </html>

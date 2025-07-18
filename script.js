@@ -14,28 +14,17 @@ import {
     updateDoc // ドキュメント更新用にインポート
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-// === グローバル変数 ===
-let canCloseAlert = false; // ポップアップがクリックで閉じられる状態か管理するフラグ
-
-
 document.addEventListener('DOMContentLoaded', () => {
     const NUM_SETS = 5;
     const MAX_LOG_ENTRIES = 15;
 
     const timerIntervals = {};
-    // 各タイマーの通知/アラートが一度表示されたか追跡するフラグ
-    // キーはセットID (0-4), 値はboolean (true: 表示済み, false: 未表示)
-    const timerNotifiedStatus = {}; 
-    console.log("DOM Content Loaded. Initializing app.");
 
     // カスタムアラート要素の取得
     const customAlertOverlay = document.getElementById('custom-alert-overlay');
     const customAlertBox = document.getElementById('custom-alert-box');
     const customAlertMessage = document.getElementById('custom-alert-message');
     const customAlertCloseBtn = document.getElementById('custom-alert-close-btn');
-    
-    // 新しく追加した通知有効化ボタンの要素を取得
-    const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
 
     // Firebase Firestore のインスタンスを取得
     const db = window.db; 
@@ -45,122 +34,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return; 
     }
 
-    // ** ポップアップ関連のイベントリスナーをDOM Content Loaded で一度だけ追加 **
-    if (customAlertOverlay) {
-        customAlertOverlay.addEventListener('click', (e) => {
-            // canCloseAlertがtrueで、かつオーバーレイ自体がクリックされた場合のみ閉じる
-            if (canCloseAlert && e.target === customAlertOverlay) {
-                closeCustomAlert();
-            }
-        });
-        console.log("Overlay click listener attached permanently."); // デバッグログ
-    }
-    if (customAlertCloseBtn) {
-        customAlertCloseBtn.addEventListener('click', () => { // 直接閉じるボタンのリスナー
-            if (canCloseAlert) { // canCloseAlertがtrueの場合のみ閉じる
-                closeCustomAlert();
-            }
-        });
-        console.log("Close button click listener attached permanently."); // デバッグログ
-    }
-    if (customAlertBox) {
-        customAlertBox.addEventListener('click', (e) => e.stopPropagation()); // ボックス内のクリックは伝播させない
-        console.log("Alert box stopPropagation listener attached permanently."); // デバッグログ
-    }
-
     /**
      * カスタムアラートを表示する関数
      * @param {string} message - 表示するメッセージ
      */
     function showCustomAlert(message) {
-        console.log("showCustomAlert called with message:", message); // デバッグログ
         customAlertMessage.textContent = message;
-        // 直接スタイルを設定して、表示を強制
-        customAlertOverlay.style.display = 'flex';
-        customAlertOverlay.style.opacity = '1'; // 透明度も確実に1に
-        customAlertOverlay.style.zIndex = '1000'; // z-indexも確実に設定
-
-        console.log("Custom alert overlay display style after showCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
-
-        // ポップアップ表示直後のクリックを無視するためのフラグ設定
-        canCloseAlert = false; 
-        console.log("canCloseAlert set to false."); // デバッグログ
-
-        // 短い遅延後にクリックを許可
-        setTimeout(() => {
-            canCloseAlert = true;
-            console.log("canCloseAlert set to true after delay."); // デバッグログ
-        }, 150); // 150ミリ秒の遅延
+        customAlertOverlay.classList.remove('hidden'); // 非表示クラスを削除して表示
+        // ポップアップの外側をクリックしたら閉じるイベントリスナー
+        customAlertOverlay.addEventListener('click', closeCustomAlert);
+        // ポップアップボックス内の「閉じる」ボタンのイベントリスナー
+        customAlertCloseBtn.addEventListener('click', closeCustomAlert);
+        // ポップアップボックス自体へのクリックは伝播させない
+        customAlertBox.addEventListener('click', (e) => e.stopPropagation());
     }
 
     /**
      * カスタムアラートを非表示にする関数
      */
     function closeCustomAlert() {
-        console.log("closeCustomAlert called."); // デバッグログ
-        // 直接スタイルを設定して、非表示を強制
-        customAlertOverlay.style.display = 'none';
-
-        console.log("Custom alert overlay display style after closeCustomAlert:", customAlertOverlay.style.display); // 新しいデバッグログ
-        
-        // 閉じた後、すぐに閉じられないようにフラグをリセット
-        canCloseAlert = false;
-        console.log("canCloseAlert reset to false after close."); // デバッグログ
-    }
-
-    /**
-     * ブラウザの通知許可をリクエストする関数
-     */
-    function requestNotificationPermission() {
-        console.log("requestNotificationPermission called."); // デバッグログ
-        if (!("Notification" in window)) {
-            console.warn("このブラウザは通知に対応していません。");
-            return;
-        }
-        // すでに許可されているか拒否されている場合は処理を終える
-        if (Notification.permission === "granted") {
-            console.log("通知はすでに許可されています。");
-            showCustomAlert("通知はすでに許可されています。");
-            // ボタンを無効にするなどのUI変更
-            if (enableNotificationsBtn) enableNotificationsBtn.disabled = true;
-            return;
-        }
-        if (Notification.permission === "denied") {
-            console.warn("通知が拒否されています。ブラウザ設定から変更してください。");
-            showCustomAlert("ブラウザ通知が拒否されています。\nブラウザの設定から通知を許可してください。");
-            // ボタンを無効にするなどのUI変更
-            if (enableNotificationsBtn) enableNotificationsBtn.disabled = true;
-            return;
-        }
-
-        // 通知許可をリクエスト
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                console.log("通知が許可されました。");
-                showCustomAlert("通知が許可されました！タイマー終了時に通知されます。");
-                if (enableNotificationsBtn) enableNotificationsBtn.disabled = true; // 許可されたらボタンを無効化
-            } else {
-                console.warn("通知が拒否されました。");
-                showCustomAlert("通知の許可がされませんでした。\nタイマー終了時に通知を表示できません。");
-            }
-        }).catch(error => {
-            console.error("通知許可のリクエスト中にエラーが発生しました:", error);
-            showCustomAlert("通知許可のリクエスト中にエラーが発生しました。\n" + error.message);
-        });
-    }
-
-    // ページロード時に自動で通知許可を求めない
-    // 代わりに、ユーザーが明示的にクリックするボタンにイベントリスナーを設定する
-
-    // 新しく追加した「通知を有効にする」ボタンのイベントリスナー
-    if (enableNotificationsBtn) {
-        enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
-        // 現在の許可状態に基づいてボタンの状態を初期設定
-        console.log("Current Notification.permission on load:", Notification.permission); // デバッグログ
-        if (Notification.permission === "granted" || Notification.permission === "denied") {
-             enableNotificationsBtn.disabled = true;
-             // 許可されている場合はボタンのテキストを変更するなどのUIフィードバックも検討
-        }
+        customAlertOverlay.classList.add('hidden'); // 非表示クラスを追加して非表示
+        // イベントリスナーを削除（重複して追加されないように）
+        customAlertOverlay.removeEventListener('click', closeCustomAlert);
+        customAlertCloseBtn.removeEventListener('click', closeCustomAlert);
+        customAlertBox.removeEventListener('click', (e) => e.stopPropagation());
     }
 
 
@@ -173,43 +70,15 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {HTMLElement} titleInput - タイトル入力欄のDOM要素
      */
     function updateCountdown(timerId, totalSeconds, displayElement, setId, titleInput) {
-        // console.log(`updateCountdown for set ${setId}: totalSeconds = ${totalSeconds}`); // 毎秒ログは多すぎるのでコメントアウト
-
         if (totalSeconds < 0) {
-            console.log(`Timer ${setId} ENDED locally.`); // デバッグログ
             clearInterval(timerIntervals[timerId]);
             delete timerIntervals[timerId]; // clearInterval後にtimerIntervalsから削除
             displayElement.textContent = '00:00';
             // タイマー終了時にFirebaseの状態を更新 ( isActiveをfalseに )
-            // このsetDocがFirestoreを更新し、他のクライアントのonSnapshotをトリガーする
-            setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: 0, isActive: false }, { merge: true })
-                .then(() => console.log(`Firestore updated for set ${setId}: ended state.`)) // デバッグログ
-                .catch(e => console.error("Error updating timer state in Firestore:", e));
-            
-            // ローカルでタイマーが終了した際に通知とアラートを表示
-            if (!timerNotifiedStatus[setId]) { // まだ通知されていない場合のみ実行
-                console.log(`Triggering LOCAL alert/notification for set ${setId}.`); // デバッグログ
-                const title = titleInput.value.trim();
-                const message = title ? `${title}のタイマーが終了しました！` : `セット${setId + 1}のタイマーが終了しました！`;
-                
-                showCustomAlert(message); // カスタムアラート表示
-
-                // ブラウザ通知を表示
-                if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification("タイマー終了", {
-                        body: message,
-                        // icon: 'https://fiarest.github.io/my-logger-app/favicon.ico' // 通知に表示するアイコンのパス (任意、ウェブサイトのルートからの相対パスで指定)
-                        // favicon.icoのエラーが出ているため、一旦コメントアウトを維持します
-                    });
-                    console.log(`Browser notification sent for set ${setId}.`); // デバッグログ
-                } else {
-                    console.warn(`Browser notification NOT sent for set ${setId}. Notification API or permission not granted.`); // デバッグログ
-                }
-                timerNotifiedStatus[setId] = true; // 通知済みフラグを立てる
-                console.log(`timerNotifiedStatus[${setId}] set to true.`); // デバッグログ
-            } else {
-                console.log(`Alert/notification for set ${setId} already shown (locally).`); // デバッグログ
-            }
+            setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: 0, isActive: false }, { merge: true }).catch(e => console.error("Error updating timer state in Firestore:", e));
+            const title = titleInput.value.trim();
+            const message = title ? `${title}のタイマーが終了しました！` : `セット${setId + 1}のタイマーが終了しました！`;
+            showCustomAlert(message);
             return;
         }
 
@@ -217,6 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const seconds = totalSeconds % 60;
         const displayTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         displayElement.textContent = displayTime;
+
+        // Firebaseへの残り時間の更新は、onSnapshotハンドラで行うため、ここでは行わない
+        // setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: totalSeconds, isActive: true }, { merge: true }).catch(e => console.error("Error saving timer remaining to Firestore:", e));
     }
 
     /**
@@ -227,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {number} initialMinutes - タイマーの初期設定分数 (Firestoreから取得)
      */
     function resetTimer(timerId, displayElement, setId, initialMinutes) {
-        console.log(`Reset timer for set ${setId}.`); // デバッグログ
         if (timerIntervals[timerId]) {
             clearInterval(timerIntervals[timerId]);
             delete timerIntervals[timerId];
@@ -235,11 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const resetTime = `${String(initialMinutes).padStart(2, '0')}:00`;
         displayElement.textContent = resetTime;
         // Firebaseのタイマー状態をリセット
-        setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: initialMinutes * 60, isActive: false, initialMinutes: initialMinutes, startTime: null }, { merge: true })
-            .then(() => console.log(`Firestore updated for set ${setId}: reset state.`)) // デバッグログ
-            .catch(e => console.error("Error resetting timer in Firestore:", e));
-        timerNotifiedStatus[setId] = false; // リセット時に通知済みフラグを解除
-        console.log(`timerNotifiedStatus[${setId}] set to false on reset.`); // デバッグログ
+        setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: initialMinutes * 60, isActive: false, initialMinutes: initialMinutes, startTime: null }, { merge: true }).catch(e => console.error("Error resetting timer in Firestore:", e));
     }
 
 
@@ -250,10 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     for (let i = 0; i < NUM_SETS; i++) {
-        // 各タイマーの通知済みフラグを初期化
-        timerNotifiedStatus[i] = false; 
-        console.log(`Initialized timerNotifiedStatus[${i}] to false.`); // デバッグログ
-
         try {
             const inputSet = document.createElement('div');
             inputSet.classList.add('input-set');
@@ -336,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // タイトルとコメントをFirebaseからリアルタイムで読み込み・同期
             // settingsコレクションの各セットIDのドキュメントを監視
             onSnapshot(doc(db, `settings/${i}`), (docSnap) => {
-                console.log(`Firestore settings snapshot for set ${i}.`); // デバッグログ
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     titleInput.value = data.title || '';
@@ -365,7 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             onSnapshot(logsQuery, (snapshot) => {
-                console.log(`Firestore logs snapshot for set ${i}. Number of docs: ${snapshot.docs.length}`); // デバッグログ
                 // テーブルを一度クリア
                 while (logDisplayTableBody.firstChild) {
                     logDisplayTableBody.removeChild(logDisplayTableBody.firstChild);
@@ -397,81 +258,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // タイマーの残り時間をFirebaseから読み込み・同期
             onSnapshot(doc(db, `timer_states/${i}`), (docSnap) => {
-                console.log(`Firestore timer_states snapshot for set ${i}.`); // デバッグログ
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    const currentIsActive = data.isActive || false; // 現在のisActive状態
-                    const currentRemainingSeconds = data.remainingSeconds || 0; // 現在の残り秒数
                     const initialMinutes = data.initialMinutes || parseInt(timerMinutesInput.value) || 5;
-                    const startTime = data.startTime;
-
-                    console.log(`Set ${i} State: isActive=${currentIsActive}, remaining=${currentRemainingSeconds}, startTime=${startTime}, notified=${timerNotifiedStatus[i]}`); // 詳細デバッグログ
+                    const startTime = data.startTime; // nullまたはタイムスタンプ
+                    const isActive = data.isActive || false;
 
                     if (timerIntervals[currentTimerId]) {
                         clearInterval(timerIntervals[currentTimerId]);
                         delete timerIntervals[currentTimerId];
-                        console.log(`Cleared existing interval for set ${i}.`); // デバッグログ
                     }
 
-                    // タイマーがFirestore上で「終了状態」になった場合 (isActive: false, remainingSeconds <= 0)
-                    if (!currentIsActive && currentRemainingSeconds <= 0) {
-                        timerDisplay.textContent = '00:00';
-                        if (!timerNotifiedStatus[i]) { // まだ通知されていない場合のみ実行
-                            console.log(`Triggering SYNCED alert/notification for set ${i}.`); // デバッグログ
+                    if (isActive && startTime) {
+                        // 開始時刻から現在までの経過時間を計算
+                        const elapsedTime = (new Date().getTime() - startTime) / 1000;
+                        let currentTotalSeconds = Math.max(0, (initialMinutes * 60) - Math.round(elapsedTime));
+
+                        if (currentTotalSeconds <= 0) {
+                            timerDisplay.textContent = '00:00';
+                            // 終了をFirestoreに反映
+                            setDoc(doc(db, `timer_states/${i}`), { remainingSeconds: 0, isActive: false, startTime: null }, { merge: true });
                             const title = titleInput.value.trim();
                             const message = title ? `${title}のタイマーが終了しました！` : `セット${i + 1}のタイマーが終了しました！`;
-                            showCustomAlert(message); // カスタムアラート表示
-                            if ("Notification" in window && Notification.permission === "granted") {
-                                new Notification("タイマー終了", { body: message });
-                                console.log(`Browser notification sent for set ${i} (synced).`); // デバッグログ
-                            } else {
-                                console.warn(`Browser notification NOT sent for set ${i} (synced). Notification API or permission not granted.`); // デバッグログ
-                            }
-                            timerNotifiedStatus[i] = true; // 通知済みフラグを立てる
-                            console.log(`timerNotifiedStatus[${i}] set to true (synced).`); // デバッグログ
+                            showCustomAlert(message);
                         } else {
-                            console.log(`Alert/notification for set ${i} already shown (synced, preventing re-notify).`); // デバッグログ
-                        }
-                    } 
-                    // タイマーがアクティブでカウントダウン中の場合
-                    else if (currentIsActive && startTime) {
-                        const elapsedTime = (new Date().getTime() - startTime) / 1000;
-                        let calculatedRemainingSeconds = Math.max(0, (initialMinutes * 60) - Math.round(elapsedTime));
-
-                        console.log(`Set ${i} running. Calculated remaining: ${calculatedRemainingSeconds}`); // デバッグログ
-
-                        if (calculatedRemainingSeconds <= 0) {
-                            // Firestoreではまだactiveだが、計算上終了している場合
-                            console.log(`Set ${i} detected local end from active state. Updating Firestore.`); // デバッグログ
-                            // ローカルのupdateCountdownに処理を任せるため、Firestoreを更新して終了
-                            setDoc(doc(db, `timer_states/${i}`), { remainingSeconds: 0, isActive: false, startTime: null }, { merge: true });
-                            // このsetDocがFirestoreを更新し、その結果onSnapshotが再度トリガーされ、
-                            // 上記の「タイマーがFirestore上で『終了状態」になった場合」のブロックで通知されるはず
-                        } else {
-                            // タイマーはまだ実行中
-                            updateCountdown(currentTimerId, calculatedRemainingSeconds, timerDisplay, i, titleInput);
+                            // タイマーを再開/同期
+                            updateCountdown(currentTimerId, currentTotalSeconds, timerDisplay, i, titleInput);
                             timerIntervals[currentTimerId] = setInterval(() => {
+                                // 毎回正確な残り時間を計算し直す
                                 const newElapsedTime = (new Date().getTime() - startTime) / 1000;
                                 let newTotalSeconds = Math.max(0, (initialMinutes * 60) - Math.round(newElapsedTime));
                                 updateCountdown(currentTimerId, newTotalSeconds, timerDisplay, i, titleInput);
                             }, 1000);
-                            timerNotifiedStatus[i] = false; // アクティブになったら通知済みフラグを解除
-                            console.log(`Set ${i} active. timerNotifiedStatus[${i}] set to false.`); // デバッグログ
                         }
-                    } 
-                    // タイマーがアクティブではないが、まだ0ではない（停止中やリセット状態）
-                    else { 
-                        const minutes = Math.floor(currentRemainingSeconds / 60);
-                        const seconds = currentRemainingSeconds % 60;
+                    } else { // isActiveがfalseの場合、またはstartTimeがない場合 (リセット状態など)
+                        const minutes = Math.floor((data.remainingSeconds || initialMinutes * 60) / 60);
+                        const seconds = (data.remainingSeconds || initialMinutes * 60) % 60;
                         timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                        timerNotifiedStatus[i] = false; // 通知済みフラグを解除
-                        console.log(`Set ${i} inactive, not zero. timerNotifiedStatus[${i}] set to false.`); // デバッグログ
                     }
                 } else {
                     // ドキュメントが存在しない場合はデフォルトの表示
                     timerDisplay.textContent = `${String(parseInt(timerMinutesInput.value)).padStart(2, '0')}:00`;
-                    timerNotifiedStatus[i] = false; // 通知済みフラグを解除
-                    console.log(`Set ${i} document does not exist. timerNotifiedStatus[${i}] set to false.`); // デバッグログ
                 }
             }, (error) => {
                 console.error(`Error loading timer state for set ${i} from Firestore:`, error);
@@ -608,15 +435,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             isActive: true,
                             initialMinutes: minutes, // 初期設定値も保存
                             startTime: new Date().getTime() // 開始時刻
-                        })
-                        .then(() => console.log(`Firestore updated for set ${i}: started state.`)) // デバッグログ
-                        .catch(e => console.error("Error starting timer in Firestore:", e));
+                        }).catch(e => console.error("Error starting timer in Firestore:", e));
                         
-                        timerNotifiedStatus[i] = false; // タイマー開始時に通知済みフラグをリセット
-                        console.log(`timerNotifiedStatus[${i}] set to false on start.`); // デバッグログ
                     } catch (e) {
                         console.error(`Error in timer start button click handler for set ${i}:`, e);
-                        showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\n${e.message}`);
+                        showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\\n${e.message}`);
                     }
                 });
                 console.log(`Timer start button event listener attached for set ${i}.`);
