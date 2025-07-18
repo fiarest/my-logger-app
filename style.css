@@ -116,7 +116,7 @@ body {
 /* X/Y座標の入力欄とラベル、記録ボタンの配置を管理するコンテナ */
 .coord-log-container {
     display: flex;
-    align-items: flex-end; /* ボタンが入力欄の下に揃うように */
+    align-items: flex-end; /* ボタンが入力欄のベースラインに揃うように */
     justify-content: space-between;
     width: 100%;
     margin-bottom: 8px;
@@ -127,36 +127,42 @@ body {
 .coord-inputs {
     display: flex; /* Flexbox を使用 */
     flex-direction: row; /* 横並びにする */
-    gap: 8px; /* 入力間の隙間 */
+    gap: 8px; /* XとYの入力欄間のスペース */
     flex-grow: 1; /* 残りのスペースを埋める */
-    flex-wrap: nowrap; /* 必要に応じて折り返さない */
+    flex-wrap: nowrap; /* 折り返さない */
 }
 
 .coord-inputs > div {
     display: flex;
-    flex-direction: column; /* ラベルと入力欄を縦に並べる */
-    align-items: flex-start; /* 左寄せ */
-    flex: 1 1 auto; /* 各入力グループが柔軟に伸縮 */
-    min-width: 60px; /* 各入力グループの最小幅 */
+    flex-direction: row; /* ラベルと入力欄を横に並べる */
+    align-items: center; /* 垂直方向中央寄せ */
+    gap: 5px; /* ラベルと入力欄間のスペース */
+    flex: 1 1 0%; /* 各入力グループが均等に幅を占めるように */
+    min-width: 0; /* flexアイテムの最小幅問題対策 */
 }
 
 .coord-inputs label {
     font-size: 0.8em;
     color: #555;
-    margin-bottom: 2px;
+    margin-bottom: 0; /* 親がrowなのでmargin-bottomは不要 */
+    flex-shrink: 0; /* ラベルが縮まないように */
 }
 
 .coord-inputs input[type="number"] {
-    width: 100%; /* 親要素(div)の幅いっぱいに広がる */
+    flex: 1; /* 入力欄が残りのスペースを埋めるように */
     padding: 6px 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.9em;
-    box-sizing: border-box; /* パディングとボーダーをwidthに含める */
+    box-sizing: border-box;
+    /* min-width, max-width を削除してflexに任せる */
+    -webkit-appearance: none !important;
+    -moz-appearance: textfield !important;
+    appearance: none !important;
 }
 
 /* 記録ボタンのスタイル */
-.coord-log-container button {
+.coord-log-container button { /* ID指定ではなくクラスで指定 */
     background-color: #555;
     color: white;
     padding: 5px 10px;
@@ -168,11 +174,9 @@ body {
     transition: background-color 0.2s ease;
     white-space: nowrap;
     box-sizing: border-box;
-    flex-shrink: 0; /* 縮小させない */
+    flex-shrink: 0;
     width: 55px; /* 記録ボタンの幅を固定 */
-    height: auto; /* ボタンの高さをコンテンツに合わせる */
-    align-self: flex-end; /* coord-inputsの高さに合わせる */
-    margin-bottom: 2px; /* ラベルとinputの高さに合わせて調整 */
+    height: 32px; /* 入力欄の高さに合わせるために明示的に設定 */
 }
 
 .coord-log-container button:hover {
@@ -182,11 +186,12 @@ body {
 .log-display {
     width: 100%;
     overflow-y: visible; /* スクロールをなくす */
-    border: 1px solid #333; /* 表全体を囲む線も黒に変更 */
-    border-radius: 6px;
+    border: none; /* 外側のボーダーをなくす */
+    border-radius: 0; /* 外側の角丸をなくす */
     margin-top: 5px; /* 表の上下のスペースを狭める */
     margin-bottom: 5px; /* 表の上下のスペースを狭める */
     background-color: #fcfcfc;
+    padding: 0; /* 内側のパディングをなくす */
 }
 
 .log-table {
@@ -198,7 +203,7 @@ body {
 .log-table th,
 .log-table td {
     padding: 4px 5px; /* 上下左右のパディングを少し減らしてスペースを狭める */
-    border-bottom: 1px solid #333; /* 黒い線に変更 */
+    border: 1px solid #333; /* 全てのセルに黒いボーダー */
     text-align: center; /* 中央揃え */
     white-space: nowrap; /* テキストの折り返しを防ぐ */
     overflow: hidden; /* はみ出したテキストを隠す */
@@ -210,7 +215,7 @@ body {
     background-color: #f0f0f0;
     color: #555;
     font-weight: bold;
-    position: sticky; /* ヘッダーをスクロール時に固定 */
+    position: sticky;
     top: 0;
     z-index: 1;
 }
