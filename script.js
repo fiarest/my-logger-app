@@ -60,6 +60,43 @@ document.addEventListener('DOMContentLoaded', () => {
         customAlertBox.removeEventListener('click', (e) => e.stopPropagation());
     }
 
+    /**
+     * ブラウザの通知許可をリクエストする関数
+     */
+    function requestNotificationPermission() {
+        if (!("Notification" in window)) {
+            console.warn("このブラウザは通知に対応していません。");
+            return;
+        }
+        if (Notification.permission === "granted") {
+            console.log("通知はすでに許可されています。");
+            return;
+        }
+        if (Notification.permission === "denied") {
+            console.warn("通知が拒否されています。ブラウザ設定から変更してください。");
+            showCustomAlert("ブラウザ通知が拒否されています。\nブラウザの設定から通知を許可してください。");
+            return;
+        }
+
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                console.log("通知が許可されました。");
+            } else {
+                console.warn("通知が拒否されました。");
+                showCustomAlert("通知の許可がされませんでした。\nタイマー終了時に通知を表示できません。");
+            }
+        }).catch(error => {
+            console.error("通知許可のリクエスト中にエラーが発生しました:", error);
+            showCustomAlert("通知許可のリクエスト中にエラーが発生しました。\n" + error.message);
+        });
+    }
+
+    // ページロード時に通知許可を求める (またはボタンクリック時など、ユーザーの操作に応じて)
+    // 初回アクセス時に自動で許可を求めるとユーザーに嫌がられる可能性があるので、
+    // ここではページロード時に自動でリクエストするようになっています。
+    // 必要に応じて、例えば「通知を有効にする」ボタンを押したときにこの関数を呼び出すように変更できます。
+    requestNotificationPermission();
+
 
     /**
      * カウントダウンタイマーを更新する関数
@@ -76,9 +113,21 @@ document.addEventListener('DOMContentLoaded', () => {
             displayElement.textContent = '00:00';
             // タイマー終了時にFirebaseの状態を更新 ( isActiveをfalseに )
             setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: 0, isActive: false }, { merge: true }).catch(e => console.error("Error updating timer state in Firestore:", e));
+            
+            // タイマー終了時のアラートと通知
             const title = titleInput.value.trim();
             const message = title ? `${title}のタイマーが終了しました！` : `セット${setId + 1}のタイマーが終了しました！`;
-            showCustomAlert(message);
+            
+            showCustomAlert(message); // カスタムアラート表示
+
+            // ブラウザ通知を表示
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("タイマー終了", {
+                    body: message,
+                    icon: '/path/to/your/icon.png' // 通知に表示するアイコンのパス (任意、相対パスでOK)
+                });
+            }
+
             return;
         }
 
@@ -280,7 +329,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             setDoc(doc(db, `timer_states/${i}`), { remainingSeconds: 0, isActive: false, startTime: null }, { merge: true });
                             const title = titleInput.value.trim();
                             const message = title ? `${title}のタイマーが終了しました！` : `セット${i + 1}のタイマーが終了しました！`;
-                            showCustomAlert(message);
+                            showCustomAlert(message); // カスタムアラート表示
+
+                            // ブラウザ通知を表示
+                            if ("Notification" in window && Notification.permission === "granted") {
+                                new Notification("タイマー終了", {
+                                    body: message,
+                                    // icon: '/path/to/your/icon.png' // 通知に表示するアイコンのパス (任意、ウェブサイトのルートからの相対パスで指定)
+                                });
+                            }
+
                         } else {
                             // タイマーを再開/同期
                             updateCountdown(currentTimerId, currentTotalSeconds, timerDisplay, i, titleInput);
