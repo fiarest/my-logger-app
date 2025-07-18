@@ -126,7 +126,7 @@ body {
 /* X/Y座標の入力欄とラベルのコンテナ */
 .coord-inputs {
     display: flex;
-    gap: 10px; /* XとYの入力欄間のスペース */
+    gap: 8px; /* XとYの入力欄間のスペースを少し狭める */
     flex-grow: 1; /* 残りのスペースを埋める */
     flex-basis: auto; /* コンテンツの幅に基づいて初期サイズを決定 */
     min-width: 0; /* Flexアイテムの最小幅問題を解決 */
