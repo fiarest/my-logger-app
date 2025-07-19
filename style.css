@@ -128,8 +128,8 @@ body {
     border-radius: 4px;
     background-color: #f0f0f0;
     flex-shrink: 0; /* 縮小させない */
-    text-align: center;
-    min-width: 60px; /* 適切な最小幅を設定 */
+    width: 60px; /* ★ここをminutes入力欄と同じ幅に固定 */
+    text-align: center; /* ★テキストを中央寄せ */
 }
 
 /* X/Y座標の入力欄とラベル、記録ボタンの配置を管理するコンテナ */
