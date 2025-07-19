@@ -8,8 +8,10 @@
 </head>
 <body>
     <div id="container">
-        </div>
+        <!-- script.js により動的に要素が追加されます -->
+    </div>
 
+    <!-- カスタムアラート -->
     <div id="custom-alert-overlay" class="hidden">
         <div id="custom-alert-box">
             <p id="custom-alert-message"></p>
@@ -18,29 +20,23 @@
     </div>
 
     <script type="module">
-      // FirebaseコンソールからコピーしたfirebaseConfigオブジェクト
-      const firebaseConfig = {
-        apiKey: "AIzaSyCKGcafBnpzEnehU9EFw-BR6XRIvDRnaLk",
-        authDomain: "my-coordinate-logger.firebaseapp.com",
-        projectId: "my-coordinate-logger",
-        storageBucket: "my-coordinate-logger.firebasestorage.app",
-        messagingSenderId: "1020461370240",
-        appId: "1:1020461370240:web:7635b47753882f68cd4f65"
-      };
+        const firebaseConfig = {
+            apiKey: "AIzaSyCKGcafBnpzEnehU9EFw-BR6XRIvDRnaLk",
+            authDomain: "my-coordinate-logger.firebaseapp.com",
+            projectId: "my-coordinate-logger",
+            storageBucket: "my-coordinate-logger.firebasestorage.app",
+            messagingSenderId: "1020461370240",
+            appId: "1:1020461370240:web:7635b47753882f68cd4f65"
+        };
 
-      // Firebase アプリを初期化に必要なモジュールをCDNからインポート
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-      import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-      // Firebase アプリを初期化
-      const app = initializeApp(firebaseConfig);
-      // Firestore データベースのインスタンスを取得
-      const db = getFirestore(app);
-
-      // db オブジェクトを window に公開し、script.js からアクセスできるようにします。
-      window.db = db;
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
     </script>
-    
+
     <script src="script.js" type="module"></script>
 </body>
 </html>
