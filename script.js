@@ -15,19 +15,15 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // === グローバル変数 ===
-// ポップアップ関連のフラグは、今回の依頼で対象外のため削除しました。
-
+// 各タイマーの通知/アラートが一度表示されたか追跡するフラグ
+// キーはセットID (0-4), 値はboolean (true: 表示済み, false: 未表示)
+const timerNotifiedStatus = {};
 
 document.addEventListener('DOMContentLoaded', () => {
     const NUM_SETS = 5;
     const MAX_LOG_ENTRIES = 15;
 
     const timerIntervals = {};
-    // 各タイマーの通知/アラートが一度表示されたか追跡するフラグ
-    // キーはセットID (0-4), 値はboolean (true: 表示済み, false: 未表示)
-    // ポップアップ関連のフラグは、今回の依頼で対象外のため削除しましたが、通知制御のために残します。
-    const timerNotifiedStatus = {}; 
-    console.log("DOM Content Loaded. Initializing app.");
 
     // カスタムアラート要素の取得
     const customAlertOverlay = document.getElementById('custom-alert-overlay');
@@ -36,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const customAlertCloseBtn = document.getElementById('custom-alert-close-btn');
     
     // Firebase Firestore のインスタンスを取得
-    const db = window.db; 
+    const db = window.db;
     if (!db) {
         console.error("Firebase Firestore is not initialized. Make sure Firebase SDK is loaded correctly in index.html.");
         showCustomAlert("データの同期機能が利用できません。\nブラウザのコンソールをご確認ください。");
@@ -44,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ** ポップアップ関連のイベントリスナーをDOM Content Loaded で一度だけ追加 **
-    // 以前のポップアップ改善ロジックは削除し、シンプルなものに戻しました
     if (customAlertOverlay) {
         customAlertOverlay.addEventListener('click', (e) => {
             if (e.target === customAlertOverlay) { // オーバーレイ自体がクリックされた場合のみ閉じる
@@ -158,12 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('container');
     if (!container) {
         console.error("Error: #container element not found. Cannot initialize sets.");
-        return;
+        return; 
     }
 
     for (let i = 0; i < NUM_SETS; i++) {
         // 各タイマーの通知済みフラグを初期化
-        timerNotifiedStatus[i] = false; 
+        timerNotifiedStatus[i] = false;
 
         try {
             const inputSet = document.createElement('div');
@@ -283,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const logData = docSnap.data();
                     const logDocId = docSnap.id; // ドキュメントIDも取得 (更新用)
 
-                    const logDate = new Date(logData.timestamp); // timestampを使う
+                    const logDate = new Date(logData.timestamp);
                     const currentDateForSeparator = logDate.toLocaleDateString('ja-JP');
 
                     // 最初のログ行ではない、かつ、日付が変わった場合のみセパレータを追加
