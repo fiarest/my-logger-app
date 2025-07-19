@@ -11,7 +11,7 @@ body {
     display: flex;
     justify-content: center;
     gap: 15px;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* 小さい画面で折り返す */
     margin-top: 10px;
 }
 
@@ -27,6 +27,7 @@ body {
     flex-direction: column;
     align-items: center;
     transition: transform 0.1s ease-in-out;
+    margin-bottom: 15px; /* 各セット間の下マージン */
 }
 
 .input-set:hover {
@@ -49,23 +50,26 @@ body {
     box-sizing: border-box;
 }
 
-/* タイマーコントロールと表示 */
+/* タイマーコントロールと表示の新しいコンテナ */
 .timer-container {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-between; /* 要素を左右に配置 */
     width: 100%;
     margin-bottom: 8px;
+    gap: 5px; /* 要素間の隙間 */
 }
 
-.timer-controls {
+/* 分数入力と開始ボタンのグループ */
+.timer-input-and-button {
     display: flex;
-    align-items: center;
     gap: 5px;
+    align-items: center;
+    flex-shrink: 0; /* 縮小させない */
 }
 
 .timer-input {
-    width: 65px;
+    width: 60px; /* 3桁表示に合わせた幅 */
     padding: 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -96,49 +100,63 @@ body {
     writing-mode: horizontal-tb;
     text-orientation: mixed;
     white-space: nowrap;
+    height: 32px; /* 入力欄と高さを合わせる */
+    box-sizing: border-box;
 }
 
 .timer-button:hover {
     background-color: #555;
 }
 
-.timer-display {
-    font-size: 1.1em;
+/* 終了時刻と残り時間の表示エリア */
+.timer-info-displays {
+    display: flex;
+    gap: 5px; /* 表示間の隙間 */
+    align-items: center;
+    flex-grow: 1; /* 残りのスペースを埋める */
+    justify-content: flex-end; /* 右寄せ */
+    min-width: 0; /* flexアイテムの最小幅問題回避 */
+}
+
+.timer-end-time-display,
+.timer-remaining-minutes-display {
+    font-size: 1em;
     font-weight: bold;
     color: #333;
     padding: 3px 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     background-color: #f0f0f0;
-    flex-shrink: 0;
+    flex-shrink: 0; /* 縮小させない */
+    text-align: center;
+    min-width: 60px; /* 適切な最小幅を設定 */
 }
 
 /* X/Y座標の入力欄とラベル、記録ボタンの配置を管理するコンテナ */
 .coord-log-container {
     display: flex;
-    align-items: center; /* 垂直方向中央寄せ */
-    justify-content: space-between; /* X/Y入力グループとボタンの間にスペースを最大限取る */
+    align-items: center;
+    justify-content: space-between;
     width: 100%;
     margin-bottom: 8px;
-    gap: 5px; /* 記録ボタンとの間隔 */
+    gap: 5px;
 }
 
-/* X/Y座標の入力欄とラベルのコンテナ */
 .coord-inputs {
     display: flex;
-    gap: 5px; /* XとYの入力欄間のスペースを狭める */
-    flex-grow: 1; /* 残りのスペースを埋める */
-    flex-basis: auto; /* コンテンツの幅に基づいて初期サイズを決定 */
-    min-width: 0; /* Flexアイテムの最小幅問題を解決 */
+    gap: 5px;
+    flex-grow: 1;
+    flex-basis: auto;
+    min-width: 0;
 }
 
 .coord-inputs > div {
-    flex: 1; /* XとYの入力欄が等しい幅になるように */
-    flex-basis: 0; /* Flexアイテムが利用可能なスペースをより均等に配分するように */
+    flex: 1;
+    flex-basis: 0;
     display: flex;
     align-items: center;
-    gap: 5px; /* ラベルと入力欄間のスペース */
-    min-width: 0; /* 各座標グループが縮小しすぎないように */
+    gap: 5px;
+    min-width: 0;
 }
 
 .coord-inputs label {
@@ -147,27 +165,25 @@ body {
     font-size: 0.85em;
     margin-bottom: 0;
     width: auto;
-    min-width: 15px; /* ラベルの最小幅を確保 */
+    min-width: 15px;
     flex-shrink: 0;
     text-align: right;
 }
 
-/* input-set内の全ての数値入力欄に適用される */
 .input-set input[type="number"] {
-    flex: 1; /* ラベルの横で残りのスペースを埋めるように */
-    padding: 4px; /* パディングを減らす */
+    flex: 1;
+    padding: 4px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.85em;
     box-sizing: border-box;
-    /* min-width, max-width を削除してflexに任せる */
     -webkit-appearance: none !important;
     -moz-appearance: textfield !important;
     appearance: none !important;
 }
 
 /* 記録ボタンのスタイル */
-#log-btn-0, #log-btn-1, #log-btn-2, #log-btn-3, #log-btn-4 {
+.log-btn { /* id指定からクラス指定に変更して汎用化 */
     background-color: #555;
     color: white;
     padding: 5px 10px;
@@ -179,12 +195,12 @@ body {
     transition: background-color 0.2s ease;
     white-space: nowrap;
     box-sizing: border-box;
-    flex-shrink: 0; /* 縮小させない */
-    width: 55px; /* 記録ボタンの幅を固定 */
-    height: 32px; /* 入力欄の高さに合わせるために明示的に設定 */
+    flex-shrink: 0;
+    width: 55px;
+    height: 32px;
 }
 
-#log-btn-0:hover, #log-btn-1:hover, #log-btn-2:hover, #log-btn-3:hover, #log-btn-4:hover {
+.log-btn:hover { /* id指定からクラス指定に変更して汎用化 */
     background-color: #444;
 }
 
@@ -258,6 +274,23 @@ body {
     border-top: 2px solid #e74c3c;
     margin-top: 5px;
     padding-top: 5px;
+}
+
+/* コメントセクションのスタイル */
+.comment-section {
+    width: 100%;
+    margin-top: 5px;
+}
+
+.comment-input {
+    width: 100%;
+    padding: 7px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.85em;
+    box-sizing: border-box;
+    resize: vertical; /* 垂直方向のみリサイズ可能にする */
+    min-height: 40px; /* 最小の高さ */
 }
 
 
