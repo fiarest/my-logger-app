@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
             function addLogToTable(logData, tableBodyElement, addSeparator = false, docId, setId) {
                 const row = document.createElement('tr');
                 // ドキュメントIDをデータ属性として保持し、編集時に利用
-                row.dataset.docId = docId; 
+                row.dataset.docId = docId;
                 row.dataset.setId = setId; // セットIDも保持
 
                 // 日時の表示形式を mm/dd hh:mm に変更
