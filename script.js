@@ -1,17 +1,23 @@
-// script.js
+// script.js の一番上に追加または変更
+
 // Firebase Firestore の関数をインポート
 // index.html で使用している Firebase SDK のバージョンに合わせてください (例: 9.23.0)
-import {
-    doc,
-    setDoc,
-    onSnapshot,
-    collection,
-    query,
-    orderBy,
-    limit,
+import { 
+    doc, 
+    setDoc, 
+    onSnapshot, 
+    collection, 
+    query, 
+    orderBy, 
+    limit, 
     addDoc,
     updateDoc // ドキュメント更新用にインポート
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+// === グローバル変数 ===
+// 各タイマーの通知/アラートが一度表示されたか追跡するフラグ
+// キーはセットID (0-4), 値はboolean (true: 表示済み, false: 未表示)
+const timerNotifiedStatus = {};
 
 document.addEventListener('DOMContentLoaded', () => {
     const NUM_SETS = 5;
@@ -24,13 +30,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const customAlertBox = document.getElementById('custom-alert-box');
     const customAlertMessage = document.getElementById('custom-alert-message');
     const customAlertCloseBtn = document.getElementById('custom-alert-close-btn');
-
+    
     // Firebase Firestore のインスタンスを取得
     const db = window.db;
     if (!db) {
         console.error("Firebase Firestore is not initialized. Make sure Firebase SDK is loaded correctly in index.html.");
         showCustomAlert("データの同期機能が利用できません。\nブラウザのコンソールをご確認ください。");
-        return;
+        return; 
+    }
+
+    // ** ポップアップ関連のイベントリスナーをDOM Content Loaded で一度だけ追加 **
+    if (customAlertOverlay) {
+        customAlertOverlay.addEventListener('click', (e) => {
+            if (e.target === customAlertOverlay) { // オーバーレイ自体がクリックされた場合のみ閉じる
+                closeCustomAlert();
+            }
+        });
+    }
+    if (customAlertCloseBtn) {
+        customAlertCloseBtn.addEventListener('click', closeCustomAlert); // 直接閉じるボタンのリスナー
+    }
+    if (customAlertBox) {
+        customAlertBox.addEventListener('click', (e) => e.stopPropagation()); // ボックス内のクリックは伝播させない
     }
 
     /**
@@ -40,12 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function showCustomAlert(message) {
         customAlertMessage.textContent = message;
         customAlertOverlay.classList.remove('hidden'); // 非表示クラスを削除して表示
-        // ポップアップの外側をクリックしたら閉じるイベントリスナー
-        customAlertOverlay.addEventListener('click', closeCustomAlert);
-        // ポップアップボックス内の「閉じる」ボタンのイベントリスナー
-        customAlertCloseBtn.addEventListener('click', closeCustomAlert);
-        // ポップアップボックス自体へのクリックは伝播させない
-        customAlertBox.addEventListener('click', (e) => e.stopPropagation());
     }
 
     /**
@@ -53,86 +68,117 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function closeCustomAlert() {
         customAlertOverlay.classList.add('hidden'); // 非表示クラスを追加して非表示
-        // イベントリスナーを削除（重複して追加されないように）
-        customAlertOverlay.removeEventListener('click', closeCustomAlert);
-        customAlertCloseBtn.removeEventListener('click', closeCustomAlert);
-        customAlertBox.removeEventListener('click', (e) => e.stopPropagation());
     }
 
-
     /**
-     * カウントダウンタイマーを更新する関数
-     * @param {string} timerId - タイマー要素のID (例: 'timer-display-0')
-     * @param {number} totalSeconds - 残り秒数
-     * @param {HTMLElement} displayElement - タイマー表示のDOM要素
-     * @param {number} setId - セットのインデックス (0-4)
-     * @param {HTMLElement} titleInput - タイトル入力欄のDOM要素
+     * ブラウザの通知許可をリクエストする関数 (未使用ですが、将来的に必要になる可能性を考慮し残します)
      */
-    function updateCountdown(timerId, totalSeconds, displayElement, setId, titleInput) {
-        if (totalSeconds < 0) {
-            clearInterval(timerIntervals[timerId]);
-            delete timerIntervals[timerId]; // clearInterval後にtimerIntervalsから削除
-            displayElement.textContent = '00:00';
-            // タイマー終了時にFirebaseの状態を更新 ( isActiveをfalseに )
-            setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: 0, isActive: false }, { merge: true }).catch(e => console.error("Error updating timer state in Firestore:", e));
-            const title = titleInput.value.trim();
-            const message = title ? `${title}のタイマーが終了しました！` : `セット${setId + 1}のタイマーが終了しました！`;
-            showCustomAlert(message);
+    function requestNotificationPermission() {
+        if (!("Notification" in window)) {
+            console.warn("このブラウザは通知に対応していません。");
+            return;
+        }
+        if (Notification.permission === "granted") {
+            return;
+        }
+        if (Notification.permission === "denied") {
+            console.warn("通知が拒否されています。ブラウザ設定から変更してください。");
             return;
         }
 
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        const displayTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        displayElement.textContent = displayTime;
-
-        // Firebaseへの残り時間の更新は、onSnapshotハンドラで行うため、ここでは行わない
-        // setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: totalSeconds, isActive: true }, { merge: true }).catch(e => console.error("Error saving timer remaining to Firestore:", e));
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+            } else {
+            }
+        }).catch(error => {
+            console.error("通知許可のリクエスト中にエラーが発生しました:", error);
+        });
     }
 
     /**
-     * タイマーをリセットする関数
-     * @param {string} timerId - タイマー要素のID
-     * @param {HTMLElement} displayElement - タイマー表示のDOM要素
-     * @param {number} setId - セットのインデックス
-     * @param {number} initialMinutes - タイマーの初期設定分数 (Firestoreから取得)
+     * カウントダウンタイマーを更新し、終了時刻と残り分を表示する関数
+     * @param {string} timerId - タイマー要素のID (例: 'timer-display-0')
+     * @param {number} totalSeconds - 残り秒数
+     * @param {HTMLElement} endTimeDisplayElement - 終了時刻表示のDOM要素
+     * @param {HTMLElement} remainingMinutesDisplayElement - 残り分表示のDOM要素
+     * @param {number} setId - セットのインデックス (0-4)
+     * @param {HTMLElement} titleInput - タイトル入力欄のDOM要素
+     * @param {number} initialMinutes - 初期設定分数
      */
-    function resetTimer(timerId, displayElement, setId, initialMinutes) {
-        if (timerIntervals[timerId]) {
-            clearInterval(timerIntervals[timerId]);
-            delete timerIntervals[timerId];
-        }
-        const resetTime = `${String(initialMinutes).padStart(2, '0')}:00`;
-        displayElement.textContent = resetTime;
-        // Firebaseのタイマー状態をリセット
-        setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: initialMinutes * 60, isActive: false, initialMinutes: initialMinutes, startTime: null }, { merge: true }).catch(e => console.error("Error resetting timer in Firestore:", e));
-    }
+    function updateCountdownAndDisplay(timerId, totalSeconds, endTimeDisplayElement, remainingMinutesDisplayElement, setId, titleInput, initialMinutes) {
+        // 終了時刻の計算と表示
+        const now = new Date();
+        const endTime = new Date(now.getTime() + totalSeconds * 1000); // 現在時刻 + 残り秒数
 
+        const endHours = String(endTime.getHours()).padStart(2, '0');
+        const endMinutes = String(endTime.getMinutes()).padStart(2, '0');
+        endTimeDisplayElement.textContent = `${endHours}:${endMinutes}`;
+
+        // 残り分の表示 (3桁数字)
+        const remainingMinutes = Math.max(0, Math.ceil(totalSeconds / 60)); // 0分を下回らないように
+        remainingMinutesDisplayElement.textContent = String(remainingMinutes).padStart(3, ' '); // 3桁で表示、足りない部分はスペース
+
+        if (totalSeconds <= 0) {
+            clearInterval(timerIntervals[timerId]);
+            delete timerIntervals[timerId]; // clearInterval後にtimerIntervalsから削除
+            
+            endTimeDisplayElement.textContent = '--:--'; // 終了時刻表示をリセット
+            remainingMinutesDisplayElement.textContent = '---'; // 残り分表示をリセット
+
+            // タイマー終了時にFirebaseの状態を更新 ( isActiveをfalseに )
+            // このsetDocがFirestoreを更新し、他のクライアントのonSnapshotをトリガーする
+            setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: 0, isActive: false, startTime: null }, { merge: true })
+                .then(() => console.log(`Firestore updated for set ${setId}: ended state.`))
+                .catch(e => console.error("Error updating timer state in Firestore:", e));
+            
+            // ローカルでタイマーが終了した際に通知とアラートを表示
+            if (!timerNotifiedStatus[setId]) { // まだ通知されていない場合のみ実行
+                const title = titleInput.value.trim();
+                const message = title ? `${title}のタイマーが終了しました！` : `セット${setId + 1}のタイマーが終了しました！`;
+                
+                showCustomAlert(message); // カスタムアラート表示
+
+                // ブラウザ通知を表示
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification("タイマー終了", {
+                        body: message,
+                    });
+                }
+                timerNotifiedStatus[setId] = true; // 通知済みフラグを立てる
+            }
+            return;
+        }
+    }
 
     const container = document.getElementById('container');
     if (!container) {
         console.error("Error: #container element not found. Cannot initialize sets.");
-        return;
+        return; 
     }
 
     for (let i = 0; i < NUM_SETS; i++) {
+        // 各タイマーの通知済みフラグを初期化
+        timerNotifiedStatus[i] = false;
+
         try {
             const inputSet = document.createElement('div');
             inputSet.classList.add('input-set');
             inputSet.id = `input-set-${i}`;
 
-            // 日時入力欄を削除したHTML構造
+            // 新しいタイマーUIのHTML構造
             inputSet.innerHTML = `
                 <div class="title-section">
                     <input type="text" id="title-${i}" placeholder="タイトル">
                 </div>
                 <div class="timer-container">
-                    <div class="timer-controls">
-                        <input type="number" id="timer-minutes-${i}" class="timer-input" placeholder="分" min="1" value="5">
+                    <div class="timer-input-and-button">
+                        <input type="number" id="timer-minutes-${i}" class="timer-input" placeholder="分" min="1" value="5" max="999">
                         <button id="timer-start-btn-${i}" class="timer-button timer-start-btn">開始</button>
-                        <button id="timer-reset-btn-${i}" class="timer-button timer-reset-btn">リセット</button>
                     </div>
-                    <div class="timer-display" id="timer-display-${i}">00:00</div>
+                    <div class="timer-info-displays">
+                        <span class="timer-end-time-display" id="timer-end-time-${i}">--:--</span>
+                        <span class="timer-remaining-minutes-display" id="timer-remaining-minutes-${i}">---</span>
+                    </div>
                 </div>
                 <div class="coord-log-container">
                     <div class="coord-inputs">
@@ -175,8 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const timerMinutesInput = document.getElementById(`timer-minutes-${i}`);
             const timerStartBtn = document.getElementById(`timer-start-btn-${i}`);
-            const timerResetBtn = document.getElementById(`timer-reset-btn-${i}`); // リセットボタン取得
-            const timerDisplay = document.getElementById(`timer-display-${i}`);
+            const endTimeDisplay = document.getElementById(`timer-end-time-${i}`); // 新しい要素
+            const remainingMinutesDisplay = document.getElementById(`timer-remaining-minutes-${i}`); // 新しい要素
             const currentTimerId = `timer-${i}`;
 
             if (!logButton) {
@@ -184,9 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!timerStartBtn) {
                 console.error(`Error: timerStartBtn not found for set ${i}.`);
-            }
-            if (!timerResetBtn) { // リセットボタンのチェックも追加
-                console.error(`Error: timerResetBtn not found for set ${i}.`);
             }
             if (!xCoordInput || !yCoordInput || !logDisplayTableBody) {
                 console.error(`Error: Missing essential input/display elements for set ${i}. Log functionality might be broken.`);
@@ -235,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const logData = docSnap.data();
                     const logDocId = docSnap.id; // ドキュメントIDも取得 (更新用)
 
-                    const logDate = new Date(logData.timestamp); // timestampを使う
+                    const logDate = new Date(logData.timestamp);
                     const currentDateForSeparator = logDate.toLocaleDateString('ja-JP');
 
                     // 最初のログ行ではない、かつ、日付が変わった場合のみセパレータを追加
@@ -270,34 +313,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (isActive && startTime) {
                         // 開始時刻から現在までの経過時間を計算
-                        const elapsedTime = (new Date().getTime() - startTime) / 1000;
-                        let currentTotalSeconds = Math.max(0, (initialMinutes * 60) - Math.round(elapsedTime));
+                        const elapsedTimeMs = new Date().getTime() - startTime;
+                        let calculatedRemainingSeconds = Math.max(0, (initialMinutes * 60 * 1000 - elapsedTimeMs) / 1000);
 
-                        if (currentTotalSeconds <= 0) {
-                            timerDisplay.textContent = '00:00';
-                            // 終了をFirestoreに反映
-                            setDoc(doc(db, `timer_states/${i}`), { remainingSeconds: 0, isActive: false, startTime: null }, { merge: true });
-                            const title = titleInput.value.trim();
-                            const message = title ? `${title}のタイマーが終了しました！` : `セット${i + 1}のタイマーが終了しました！`;
-                            showCustomAlert(message);
+                        if (calculatedRemainingSeconds <= 0) {
+                            // タイマーが終了した場合の処理 (Firestoreの更新も含む)
+                            updateCountdownAndDisplay(currentTimerId, 0, endTimeDisplay, remainingMinutesDisplay, i, titleInput, initialMinutes);
                         } else {
                             // タイマーを再開/同期
-                            updateCountdown(currentTimerId, currentTotalSeconds, timerDisplay, i, titleInput);
+                            updateCountdownAndDisplay(currentTimerId, calculatedRemainingSeconds, endTimeDisplay, remainingMinutesDisplay, i, titleInput, initialMinutes);
                             timerIntervals[currentTimerId] = setInterval(() => {
                                 // 毎回正確な残り時間を計算し直す
-                                const newElapsedTime = (new Date().getTime() - startTime) / 1000;
-                                let newTotalSeconds = Math.max(0, (initialMinutes * 60) - Math.round(newElapsedTime));
-                                updateCountdown(currentTimerId, newTotalSeconds, timerDisplay, i, titleInput);
+                                const newElapsedTimeMs = new Date().getTime() - startTime;
+                                let newCalculatedRemainingSeconds = Math.max(0, (initialMinutes * 60 * 1000 - newElapsedTimeMs) / 1000);
+                                updateCountdownAndDisplay(currentTimerId, newCalculatedRemainingSeconds, endTimeDisplay, remainingMinutesDisplay, i, titleInput, initialMinutes);
                             }, 1000);
                         }
-                    } else { // isActiveがfalseの場合、またはstartTimeがない場合 (リセット状態など)
-                        const minutes = Math.floor((data.remainingSeconds || initialMinutes * 60) / 60);
-                        const seconds = (data.remainingSeconds || initialMinutes * 60) % 60;
-                        timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                        timerNotifiedStatus[i] = false; // アクティブになったら通知済みフラグを解除
+
+                    } else { // isActiveがfalseの場合 (停止中、リセット済み、または終了状態)
+                        // Firebaseに保存された残り秒数、または初期設定分数から表示を更新
+                        const displaySeconds = data.remainingSeconds !== undefined ? data.remainingSeconds : initialMinutes * 60;
+                        updateCountdownAndDisplay(currentTimerId, displaySeconds, endTimeDisplay, remainingMinutesDisplay, i, titleInput, initialMinutes);
+                        timerNotifiedStatus[i] = false; // 通知済みフラグを解除
+
+                        // Firestore上で「終了状態」になった場合の通知/アラート (isActive: false, remainingSeconds <= 0)
+                        if (!isActive && displaySeconds <= 0) {
+                             if (!timerNotifiedStatus[i]) { // まだ通知されていない場合のみ実行
+                                const title = titleInput.value.trim();
+                                const message = title ? `${title}のタイマーが終了しました！` : `セット${i + 1}のタイマーが終了しました！`;
+                                showCustomAlert(message); // カスタムアラート表示
+                                if ("Notification" in window && Notification.permission === "granted") {
+                                    new Notification("タイマー終了", { body: message });
+                                }
+                                timerNotifiedStatus[i] = true; // 通知済みフラグを立てる
+                            }
+                        }
                     }
                 } else {
-                    // ドキュメントが存在しない場合はデフォルトの表示
-                    timerDisplay.textContent = `${String(parseInt(timerMinutesInput.value)).padStart(2, '0')}:00`;
+                    // ドキュメントが存在しない場合はデフォルトの表示と状態を設定
+                    const defaultMinutes = parseInt(timerMinutesInput.value) || 5;
+                    updateCountdownAndDisplay(currentTimerId, defaultMinutes * 60, endTimeDisplay, remainingMinutesDisplay, i, titleInput, defaultMinutes);
+                    timerNotifiedStatus[i] = false; // 通知済みフラグを解除
                 }
             }, (error) => {
                 console.error(`Error loading timer state for set ${i} from Firestore:`, error);
@@ -320,23 +377,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const minutes = String(date.getMinutes()).padStart(2, '0');
                 const formattedDateTime = `${month}/${day} ${hours}:${minutes}`;
 
-                // XとYの値を数値に変換
-                const xValue = parseFloat(logData.x);
-                const yValue = parseFloat(logData.y);
-
-                // ハイライト条件をチェック
-                const shouldHighlight = xValue < 70 && yValue < 75; 
-
-                // XとYのセルに条件付きでクラスを追加
-                const xCellClass = shouldHighlight ? 'editable-cell highlight-cell' : 'editable-cell'; 
-                const yCellClass = shouldHighlight ? 'editable-cell highlight-cell' : 'editable-cell'; 
-
                 row.innerHTML = `
                     <td>${formattedDateTime}</td>
-                    <td class="${xCellClass}" data-field="x" style="text-align: center;">${logData.x !== undefined ? logData.x : ''}</td>
-                    <td class="${yCellClass}" data-field="y" style="text-align: center;">${logData.y !== undefined ? logData.y : ''}</td>
+                    <td class="editable-cell" data-field="x" style="text-align: center;">${logData.x !== undefined ? logData.x : ''}</td>
+                    <td class="editable-cell" data-field="y" style="text-align: center;">${logData.y !== undefined ? logData.y : ''}</td>
                 `;
-
+                
                 // 日付が変わる場合にセパレータ行を挿入
                 if (addSeparator) {
                     const separatorRow = document.createElement('tr');
@@ -370,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
             }
-
+            
             // タイマー分数入力時の処理をFirebaseに保存するように変更
             if (timerMinutesInput) {
                 timerMinutesInput.addEventListener('input', () => {
@@ -388,11 +434,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // ログ記録ボタンのイベントリスナー (日時入力欄の処理を削除)
             if (logButton && xCoordInput && yCoordInput && logDisplayTableBody) {
                 logButton.addEventListener('click', async () => {
-                    console.log(`Log button clicked for set ${i}`);
                     try {
                         const x = xCoordInput.value;
                         const y = yCoordInput.value;
-
+                        
                         if (x === '' || y === '') {
                             showCustomAlert('XとYの両方を入力してください。');
                             return;
@@ -416,7 +461,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         // Firebaseにログを追加
                         await addDoc(collection(db, `logs/${i}/entries`), logData);
-                        console.log(`Log added to Firestore for set ${i}:`, logData);
 
                         xCoordInput.value = '';
                         yCoordInput.value = '';
@@ -425,14 +469,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         showCustomAlert(`ログ記録中に予期せぬエラーが発生しました:\n${e.message}`);
                     }
                 });
-                console.log(`Log button event listener attached for set ${i}.`);
             } else {
                 console.warn(`Log button event listener NOT attached for set ${i} due to missing elements.`);
             }
 
-            if (timerStartBtn && timerMinutesInput && timerDisplay && titleInput) {
+            if (timerStartBtn && timerMinutesInput && endTimeDisplay && remainingMinutesDisplay && titleInput) {
                 timerStartBtn.addEventListener('click', () => {
-                    console.log(`Timer start button clicked for set ${i}`);
                     try {
                         const minutes = parseInt(timerMinutesInput.value);
                         if (isNaN(minutes) || minutes <= 0) {
@@ -440,31 +482,30 @@ document.addEventListener('DOMContentLoaded', () => {
                             return;
                         }
                         // タイマーの開始もFirebaseの状態として記録
-                        setDoc(doc(db, `timer_states/${i}`), {
-                            remainingSeconds: minutes * 60,
+                        // 開始ボタンが押されたら、常にリセット（新しい開始時刻で再スタート）
+                        setDoc(doc(db, `timer_states/${i}`), { 
+                            remainingSeconds: minutes * 60, 
                             isActive: true,
                             initialMinutes: minutes, // 初期設定値も保存
-                            startTime: new Date().getTime() // 開始時刻
-                        }).catch(e => console.error("Error starting timer in Firestore:", e));
-
+                            startTime: new Date().getTime() // 新しい開始時刻
+                        }).catch(e => console.error("Error starting/resetting timer in Firestore:", e));
+                        
                     } catch (e) {
                         console.error(`Error in timer start button click handler for set ${i}:`, e);
                         showCustomAlert(`タイマー開始中に予期せぬエラーが発生しました:\\n${e.message}`);
                     }
                 });
-                console.log(`Timer start button event listener attached for set ${i}.`);
             } else {
                 console.warn(`Timer start button event listener NOT attached for set ${i} due to missing elements.`);
             }
 
-            // タイマーリセットボタンのイベントリスナーを追加
-            if (timerResetBtn && timerDisplay && timerMinutesInput) {
-                timerResetBtn.addEventListener('click', () => {
-                    const initialMinutes = parseInt(timerMinutesInput.value) || 5; // 初期値を取得
-                    resetTimer(currentTimerId, timerDisplay, i, initialMinutes);
-                });
-                console.log(`Timer reset button event listener attached for set ${i}.`);
-            }
+            // リセットボタンが削除されたため、関連ロジックは不要
+            // if (timerResetBtn && timerDisplay && timerMinutesInput) {
+            //     timerResetBtn.addEventListener('click', () => {
+            //         const initialMinutes = parseInt(timerMinutesInput.value) || 5;
+            //         resetTimer(currentTimerId, timerDisplay, i, initialMinutes);
+            //     });
+            // }
 
             // 表のセル編集機能のセットアップ
             logDisplayTableBody.addEventListener('click', async (event) => {
@@ -516,27 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Firebaseのドキュメントを更新
                         const logRef = doc(db, `logs/${currentSetId}/entries`, docId);
                         await updateDoc(logRef, { [fieldToUpdate]: newValue });
-                        console.log(`Updated log ${fieldToUpdate} for doc ${docId} in set ${currentSetId}`);
-
-                        // UIを更新し、ハイライト条件を再評価
-                        cell.textContent = newValue;
-
-                        // 同じ行のXとYの値を再取得し、ハイライト条件を再評価
-                        const xCell = row.querySelector('[data-field="x"]'); 
-                        const yCell = row.querySelector('[data-field="y"]'); 
-
-                        const updatedXValue = parseFloat(xCell.textContent); 
-                        const updatedYValue = parseFloat(yCell.textContent); 
-                        const updatedShouldHighlight = updatedXValue < 70 && updatedYValue < 75; 
-
-                        if (updatedShouldHighlight) {
-                            xCell.classList.add('highlight-cell'); 
-                            yCell.classList.add('highlight-cell'); 
-                        } else {
-                            xCell.classList.remove('highlight-cell'); 
-                            yCell.classList.remove('highlight-cell'); 
-                        }
-
+                        cell.textContent = newValue; // UIを更新
                     } catch (e) {
                         console.error(`Error updating log ${fieldToUpdate} for set ${currentSetId} in Firestore:`, e);
                         showCustomAlert(`ログの更新に失敗しました。\nエラー: ${e.message}`);
