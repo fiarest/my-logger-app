@@ -266,7 +266,7 @@ body {
     padding: 7px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    font-size: 0.95em; /* 表のフォントサイズに合わせる */
+    font-size: 0.85em; /* 表のフォントサイズより小さく */
     box-sizing: border-box;
     resize: vertical;
     min-height: 40px;

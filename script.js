@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalSeconds < 0) {
             clearInterval(timerIntervals[timerId]);
             delete timerIntervals[timerId]; // clearInterval後にtimerIntervalsから削除
-            displayElement.textContent = '00分'; // 分のみ表示
+            displayElement.textContent = '00'; // カウントダウン終了時は常に00
             // タイマー終了時にFirebaseの状態を更新 ( isActiveをfalseに )
             setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: 0, isActive: false }, { merge: true }).catch(e => console.error("Error updating timer state in Firestore:", e));
             const title = titleInput.value.trim();
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const minutes = Math.floor(totalSeconds / 60);
-        const displayTime = `${String(minutes).padStart(2, '0')}分`; // 分のみ表示
+        const displayTime = `${String(minutes).padStart(2, '0')}`; // 分のみ表示 (「分」の文字なし)
         displayElement.textContent = displayTime;
 
         // Firebaseへの残り時間の更新は、onSnapshotハンドラで行うため、ここでは行わない
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(timerIntervals[timerId]);
             delete timerIntervals[timerId];
         }
-        const resetTime = `${String(initialMinutes).padStart(2, '0')}分`; // 分のみ表示
+        const resetTime = `${String(initialMinutes).padStart(2, '0')}`; // 分のみ表示 (「分」の文字なし)
         displayElement.textContent = resetTime;
         // Firebaseのタイマー状態をリセット
         setDoc(doc(db, `timer_states/${setId}`), { remainingSeconds: initialMinutes * 60, isActive: false, initialMinutes: initialMinutes, startTime: null }, { merge: true }).catch(e => console.error("Error resetting timer in Firestore:", e));
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button id="timer-start-btn-${i}" class="timer-button timer-start-btn">開始</button>
                         <button id="timer-reset-btn-${i}" class="timer-button timer-reset-btn">リセット</button>
                     </div>
-                    <div class="timer-display" id="timer-display-${i}">00分</div> // ★ここを修正: 初期表示を「00分」に
+                    <div class="timer-display" id="timer-display-${i}">00</div>
                 </div>
                 <div class="coord-log-container">
                     <div class="coord-inputs">
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         let currentTotalSeconds = Math.max(0, (initialMinutes * 60) - Math.round(elapsedTime));
 
                         if (currentTotalSeconds <= 0) {
-                            timerDisplay.textContent = '00分'; // ★ここを修正: 分のみ表示
+                            timerDisplay.textContent = '00'; // 終了時は常に00
                             // 終了をFirestoreに反映
                             setDoc(doc(db, `timer_states/${i}`), { remainingSeconds: 0, isActive: false, startTime: null }, { merge: true });
                             const title = titleInput.value.trim();
@@ -291,12 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             }, 1000);
                         }
                     } else { // isActiveがfalseの場合、またはstartTimeがない場合 (リセット状態など)
-                        const minutes = Math.floor((data.remainingSeconds || initialMinutes * 60) / 60);
-                        timerDisplay.textContent = `${String(minutes).padStart(2, '0')}分`; // ★ここを修正: 分のみ表示
+                        // remainingSecondsがnull/undefinedの場合はinitialMinutesを、それ以外はremainingSecondsを使用
+                        const secondsToDisplay = (data.remainingSeconds !== undefined && data.remainingSeconds !== null) ? data.remainingSeconds : (initialMinutes * 60);
+                        const minutes = Math.floor(secondsToDisplay / 60);
+                        timerDisplay.textContent = `${String(minutes).padStart(2, '0')}`; // 分のみ表示 (「分」の文字なし)
                     }
                 } else {
                     // ドキュメントが存在しない場合はデフォルトの表示
-                    timerDisplay.textContent = `${String(parseInt(timerMinutesInput.value)).padStart(2, '0')}分`; // ★ここを修正: 分のみ表示
+                    timerDisplay.textContent = `${String(parseInt(timerMinutesInput.value)).padStart(2, '0')}`; // 分のみ表示 (「分」の文字なし)
                 }
             }, (error) => {
                 console.error(`Error loading timer state for set ${i} from Firestore:`, error);
@@ -313,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 日時の表示形式を mm/dd hh:mm に変更
                 const date = new Date(logData.timestamp);
-                const month = String(date.getMonth() + 1); // ★ここを修正: 1桁の月の場合、前のゼロはつけない
+                const month = String(date.getMonth() + 1); // 1桁の月の場合、前のゼロはつけない
                 const day = String(date.getDate()).padStart(2, '0');
                 const hours = String(date.getHours()).padStart(2, '0');
                 const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -399,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         // 現在時刻を自動で取得して日時とする
                         const now = new Date();
-                        const month = String(now.getMonth() + 1); // ★ここを修正: 1桁の月の場合、前のゼロはつけない
+                        const month = String(now.getMonth() + 1); // 1桁の月の場合、前のゼロはつけない
                         const day = String(now.getDate()).padStart(2, '0');
                         const hours = String(now.getHours()).padStart(2, '0');
                         const minutes = String(now.getMinutes()).padStart(2, '0');
