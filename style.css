@@ -214,7 +214,7 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 0.95em;
+    font-size: 0.95em; /* 表のフォントサイズ */
 }
 
 .log-table th {
@@ -260,6 +260,17 @@ body {
     padding-top: 5px;
 }
 
+/* コメント入力欄のスタイル */
+.comment-section .comment-input {
+    width: 100%;
+    padding: 7px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.95em; /* 表のフォントサイズに合わせる */
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 40px;
+}
 
 /* カスタムアラートポップアップのスタイル */
 #custom-alert-overlay {
