@@ -135,28 +135,29 @@ body {
 /* X/Y座標の入力欄とラベル、記録ボタンの配置を管理するコンテナ */
 .coord-log-container {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: center; /* 垂直方向中央寄せ */
+    justify-content: space-between; /* X/Y入力グループとボタンの間にスペースを最大限取る */
     width: 100%;
     margin-bottom: 8px;
-    gap: 5px;
+    gap: 5px; /* 記録ボタンとの間隔 */
 }
 
+/* X/Y座標の入力欄とラベルのコンテナ */
 .coord-inputs {
     display: flex;
-    gap: 5px;
-    flex-grow: 1;
-    flex-basis: auto;
-    min-width: 0;
+    gap: 5px; /* XとYの入力欄間のスペースを狭める */
+    flex-grow: 1; /* 残りのスペースを埋める */
+    flex-basis: auto; /* コンテンツの幅に基づいて初期サイズを決定 */
+    min-width: 0; /* Flexアイテムの最小幅問題を解決 */
 }
 
 .coord-inputs > div {
-    flex: 1;
-    flex-basis: 0;
+    flex: 1; /* XとYの入力欄が等しい幅になるように */
+    flex-basis: 0; /* Flexアイテムが利用可能なスペースをより均等に配分するように */
     display: flex;
     align-items: center;
-    gap: 5px;
-    min-width: 0;
+    gap: 5px; /* ラベルと入力欄間のスペース */
+    min-width: 0; /* 各座標グループが縮小しすぎないように */
 }
 
 .coord-inputs label {
@@ -165,25 +166,28 @@ body {
     font-size: 0.85em;
     margin-bottom: 0;
     width: auto;
-    min-width: 15px;
+    min-width: 15px; /* ラベルの最小幅を確保 */
     flex-shrink: 0;
     text-align: right;
 }
 
+/* input-set内の全ての数値入力欄に適用される */
 .input-set input[type="number"] {
-    flex: 1;
-    padding: 4px;
+    flex: 1; /* ラベルの横で残りのスペースを埋めるように */
+    padding: 4px; /* パディングを減らす */
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.85em;
     box-sizing: border-box;
+    /* min-width, max-width を削除してflexに任せる */
     -webkit-appearance: none !important;
     -moz-appearance: textfield !important;
     appearance: none !important;
 }
 
 /* 記録ボタンのスタイル */
-.log-btn { /* id指定からクラス指定に変更して汎用化 */
+/* ID指定からクラス指定に変更して汎用化 */
+.log-btn {
     background-color: #555;
     color: white;
     padding: 5px 10px;
@@ -195,12 +199,12 @@ body {
     transition: background-color 0.2s ease;
     white-space: nowrap;
     box-sizing: border-box;
-    flex-shrink: 0;
-    width: 55px;
-    height: 32px;
+    flex-shrink: 0; /* 縮小させない */
+    width: 55px; /* 記録ボタンの幅を固定 */
+    height: 32px; /* 入力欄の高さに合わせるために明示的に設定 */
 }
 
-.log-btn:hover { /* id指定からクラス指定に変更して汎用化 */
+.log-btn:hover {
     background-color: #444;
 }
 
@@ -276,10 +280,10 @@ body {
     padding-top: 5px;
 }
 
-/* コメントセクションのスタイル */
+/* コメント入力欄 */
 .comment-section {
     width: 100%;
-    margin-top: 5px;
+    margin-top: 8px;
 }
 
 .comment-input {
@@ -328,7 +332,7 @@ body {
     font-size: 1.1em;
     margin-bottom: 20px;
     color: #333;
-    white-space: pre-wrap;
+    white-space: pre-wrap; /* 改行を保持 */
 }
 
 #custom-alert-close-btn {
@@ -350,4 +354,9 @@ body {
 @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.9); }
     to { opacity: 1; transform: scale(1); }
+}
+
+/* 新しく追加するハイライト用のスタイル */
+.highlight-cell {
+    background-color: #ffe0b2; /* 薄いオレンジ */
 }
