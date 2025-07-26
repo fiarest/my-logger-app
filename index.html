@@ -3,30 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X/Y座標 ロギングアプリ</title>
+    <title>座標ロガー</title>
     <link rel="stylesheet" href="style.css">
-    <script type="module">
-      // Firebaseの設定をここに追加
-      const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
-      };
-
-      // Firebaseを初期化
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-      import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-      const app = initializeApp(firebaseConfig);
-      window.db = getFirestore(app); // Firestoreのインスタンスをグローバルに利用可能にする
-    </script>
-    <script type="module" src="script.js"></script>
 </head>
 <body>
-    
     <div id="container">
         </div>
 
@@ -36,5 +16,31 @@
             <button id="custom-alert-close-btn">閉じる</button>
         </div>
     </div>
+
+    <script type="module">
+      // FirebaseコンソールからコピーしたfirebaseConfigオブジェクト
+      const firebaseConfig = {
+        apiKey: "AIzaSyCKGcafBnpzEnehU9EFw-BR6XRIvDRnaLk",
+        authDomain: "my-coordinate-logger.firebaseapp.com",
+        projectId: "my-coordinate-logger",
+        storageBucket: "my-coordinate-logger.firebasestorage.app",
+        messagingSenderId: "1020461370240",
+        appId: "1:1020461370240:web:7635b47753882f68cd4f65"
+      };
+
+      // Firebase アプリを初期化に必要なモジュールをCDNからインポート
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+      import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+      // Firebase アプリを初期化
+      const app = initializeApp(firebaseConfig);
+      // Firestore データベースのインスタンスを取得
+      const db = getFirestore(app);
+
+      // db オブジェクトを window に公開し、script.js からアクセスできるようにします。
+      window.db = db;
+    </script>
+    
+    <script src="script.js" type="module"></script>
 </body>
 </html>
